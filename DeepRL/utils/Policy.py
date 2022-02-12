@@ -12,7 +12,7 @@ class Policy:
 
 # greedy choosing the action
 class Greedy(Policy):
-    def act(self, q_values):
+    def act(self, q_values, n_actions):
         return tf.argmax(q_values)
 
 
@@ -22,11 +22,11 @@ class EpsGreedy(Policy):
     def __init__(self, eps):
         self.eps = eps
 
-    def act(self, q_value):
+    def act(self, q_value, n_actions):
         # when random number greater than ep using greedy else random。
         if random.random() > self.eps:
             return tf.argmax(q_value)
-        return random.randrange(len(q_value))
+        return random.randrange(n_actions)
 
 
 # Gaussian random + greedy choosing
@@ -36,10 +36,10 @@ class GaussianEpsGreedy(Policy):
         self.eps_mean = eps_mean
         self.eps_std = eps_std
 
-    def act(self, q_value):
+    def act(self, q_value, n_actions):
         # Construct gaussian distribution to choose
         eps = truncnorm.rvs((0 - self.eps_mean) / self.eps_std, (1 - self.eps_mean) / self.eps_std)
         if random.random() > eps:
             return tf.argmax(q_value)
-        return random.randrange(len(q_value))
+        return random.randrange(n_actions)
 

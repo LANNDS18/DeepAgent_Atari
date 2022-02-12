@@ -2,32 +2,21 @@ import gym
 from DeepRL.utils.Common import process_frame
 
 
-class GameWrapper(gym.Wrapper):
+class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env, output_shape=(84, 84)):
-        super().__init__(env)
-        self.env = env
+    def __init__(self, env_name, output_shape=(84, 84)):
+        super().__init__(env_name)
+        self.env = gym.make(env_name)
         self.output_shape = output_shape
-
-    @staticmethod
-    def process_reward(reward):
-        if reward > 0:
-            reward = 1
-        if reward == 0:
-            reward = -0.0005
-        if reward < 0:
-            reward = -1
-        return reward
 
     def reset(self):
         return process_frame(self.env.reset(), shape=self.output_shape)
 
-    def step(self, action, render_mode='human'):
+    def step(self, action):
         """Performs an action and observes the result
         Arguments:
             action: An integer describe action the agent chose
-            render_mode: None doesn't render anything, 'human' renders the screen in a new window
         Returns:
             next_state: The processed new frame as a result of that action
             reward: The reward for taking that action
@@ -36,7 +25,4 @@ class GameWrapper(gym.Wrapper):
         """
         next_state, reward, done, info = self.env.step(action)
         next_state = process_frame(next_state)
-        if render_mode == 'human':
-            self.env.render()
-        reward = self.process_reward(reward)
         return next_state, reward, done, info

@@ -2,10 +2,10 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.losses import MSE
-from DeepRL.interfaces.IOffPolicyAgent import OffPolicyAgent
+from DeepRL.interfaces.IBaseAgent import BaseAgent
 
 
-class DQNAgent(OffPolicyAgent):
+class DQNAgent(BaseAgent):
 
     def __init__(
             self,
@@ -25,7 +25,7 @@ class DQNAgent(OffPolicyAgent):
             model: tf.keras.model.Model that is expected to be compiled
                 with an optimizer before training starts.
             buffer: A list of replay buffer objects whose length should match
-                `env`s'.
+                `env_name`s'.
             epsilon_start: Starting epsilon value which is used to control random exploration.
                 It should be decremented and adjusted according to implementation needs.
             epsilon_end: End epsilon value which is the minimum exploration rate.
@@ -60,16 +60,16 @@ class DQNAgent(OffPolicyAgent):
     @tf.function
     def model_predict(self, inputs, model, training=True):
         """
-        Get model outputs (action)
+        Get model outputs
         Args:
             inputs: Inputs as tensors / numpy arrays that are expected
                 by the given model.
-            model: A tf.keras.Model or a list of tf.keras.Model(s)
-            training:
+            model: A tf.keras.Model
+            training: Using for model to determine whether training or not
         Returns:
-            Outputs that is expected from the given model.
+            index of max q-value, q-value list
         """
-        # q_values = model.predict(inputs)
+        # equal to q_values = model.predict(inputs)
         q_values = super(DQNAgent, self).model_predict(inputs, model, training=training)
         return tf.argmax(q_values, axis=1), q_values
 
@@ -83,10 +83,7 @@ class DQNAgent(OffPolicyAgent):
 
     def sync_target_model(self):
         """
-        Sync target model weights with main's
-
-        Returns:
-            None
+        Sync target model weights with eval model every target_sync_steps
         """
         if self.steps % self.target_sync_steps == 0:
             self.target_model.set_weights(self.model.get_weights())
@@ -100,7 +97,8 @@ class DQNAgent(OffPolicyAgent):
         """
         if np.random.random() < self.epsilon:
             return np.random.randint(0, self.n_actions)
-        state = np.array([self.state])
+        # state = np.array([self.state])
+        state = tf.expand_dims(self.state, axis=0)
         action = self.model_predict(state, self.model)[0].numpy().tolist()[0]
         return action
 
@@ -108,14 +106,13 @@ class DQNAgent(OffPolicyAgent):
         """
         Get targets for gradient update.
         Args:
-            state: A tensor of shape (total buffer batch size, *self.input_shape)
-            action: A tensor of shape (total buffer batch size)
-            reward: A tensor of shape (total buffer batch size)
-            done: A tensor of shape (s total buffer batch size)
-            new_states: A tensor of shape (total buffer batch size, *self.input_shape)
-
+            state: size = (total buffer batch size, *self.input_shape)
+            action: size =  buffer batch size
+            reward: size =  buffer batch size
+            done: size =  buffer batch size
+            new_states: size = (total buffer batch size, *self.input_shape)
         Returns:
-            Target values, a tensor of shape (total buffer batch size, self.n_actions)
+            Target values: size = (total buffer batch size, *self.input_shape)
         """
         q_states = self.model_predict(state, self.model)[1]
 
@@ -160,13 +157,12 @@ class DQNAgent(OffPolicyAgent):
         """
         self.update_epsilon()
 
-    # @tf.function
+    @tf.function
     def train_step(self):
         """
         Perform 1 step which controls action_selection, interaction with environments
-        in self.env, batching and gradient updates.
+        in self.env_name, batching and gradient updates.
         """
-
         action = tf.numpy_function(self.get_action, [], tf.int64)
         tf.numpy_function(self.step_env, [action, True], [])
         training_batch = tf.numpy_function(
@@ -174,31 +170,19 @@ class DQNAgent(OffPolicyAgent):
             [],
             self.batch_dtypes,
         )
-        '''
-        action = self.get_action()
-        self.step_env(action=action, store_in_buffers=True)
-        training_batch = self.buffer.get_sample()
-        '''
-
         targets = self.get_targets(*training_batch)
         self.update_gradients(training_batch[0], targets)
 
     def at_step_end(self):
-        """
-        Execute steps that will run after self.train_step() which
-        updates target model.
-        """
         self.sync_target_model()
 
-    def fit(
+    def learn(
             self,
             target_reward=None,
             max_steps=None,
             monitor_session=None,
     ):
         """
-        Common training loop shared by subclasses, monitors training status
-        and progress, performs all training steps, updates metrics, and logs progress.
         Args:
             target_reward: Target reward, if achieved, the training will stop
             max_steps: Maximum number of steps, if reached the training will stop.
@@ -209,6 +193,7 @@ class DQNAgent(OffPolicyAgent):
             self.check_episodes()
             if self.check_finish_training():
                 break
+            self.env.render()
             self.at_step_start()
             self.train_step()
             self.at_step_end()

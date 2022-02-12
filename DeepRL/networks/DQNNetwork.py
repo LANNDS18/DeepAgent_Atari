@@ -1,11 +1,11 @@
 from tensorflow.keras.initializers import VarianceScaling
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input
 from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import SGD
 
 
 def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
-    """Builds a dueling networks as a Keras model
+    """Builds a cnn networks as a Keras model
     Arguments:
         n_actions: Number of possible action the agent can take
         learning_rate: Learning rate
@@ -27,7 +27,7 @@ def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
 
     # Build model
     model = Model(model_input, out)
-    model.compile(Adam(learning_rate))
+    model.compile(SGD(learning_rate))
     model.summary()
 
     return model

@@ -16,7 +16,7 @@ from termcolor import colored
 from DeepRL.utils.Common import write_from_dict
 
 
-class OffPolicyAgent(ABC):
+class BaseAgent(ABC):
     """
         Base class for various types of dqn agents.
     """
@@ -115,15 +115,9 @@ class OffPolicyAgent(ABC):
         random.seed(seed)
 
     def reset_env(self):
-        """
-        Reset all environments in self.env and update self.state
-        """
         self.state = self.env.reset()
 
     def save_best_model(self):
-        """
-        Save model weights if current reward > best reward.
-        """
         if self.mean_reward > self.best_reward:
             self.plateau_count = 0
             self.early_stop_count = 0
@@ -137,7 +131,7 @@ class OffPolicyAgent(ABC):
 
     def display_metrics(self):
         """
-        Display progress metrics to the console when environments complete a full episode each.
+        Display progress metrics to the console when environments complete a full episode.
         Metrics consist of:
             - time: Time since training started.
             - steps: Time steps so far.
@@ -278,19 +272,20 @@ class OffPolicyAgent(ABC):
 
     def step_env(self, action, store_in_buffers=False):
         """
-        Step environment in self.env, update metrics (if any done terminal_episodes)
+        Step environment in self.env_name, update metrics (if any done terminal_episodes)
             and return / store results.
         Args:
             action: An iterable of action to execute by environments.
             store_in_buffers: If True, each observation is saved separately in respective buffer.
         """
+        observations = []
         state = self.state
         new_state, reward, done, _ = self.env.step(action)
         self.state = new_state
         self.done = done
         self.episode_reward += reward
         observation = state, action, reward, done, new_state
-        if store_in_buffers and hasattr(self, 'buffer'):
+        if store_in_buffers:
             self.buffer.append(*observation)
         if done:
             if self.history_path:
@@ -300,7 +295,8 @@ class OffPolicyAgent(ABC):
             self.terminal_episodes += 1
             self.episode_reward = 0
             self.state = self.env.reset()
-            self.steps += 1
+        self.steps += 1
+        return observations
 
     def load_history_from_path(self):
         """
@@ -339,7 +335,7 @@ class OffPolicyAgent(ABC):
     def train_step(self):
         """
         Perform 1 step which controls action_selection, interaction with environments
-        in self.env, batching and gradient updates.
+        in self.env_name, batching and gradient updates.
         """
         raise NotImplementedError(
             f'train_step() should be implemented by {self.__class__.__name__} subclasses'
@@ -354,14 +350,14 @@ class OffPolicyAgent(ABC):
             model: A tf.keras.Model
             training: whether training or not
         Returns:
-            Outputs single model
+            q value list for single model
         """
         if isinstance(model, tf.keras.models.Model):
             return model(x_pred, training=training)
         else:
             raise AttributeError('model should be a tf.keras.Model')
 
-    def fit(
+    def learn(
             self,
             target_reward=None,
             max_steps=None,
@@ -386,7 +382,11 @@ class OffPolicyAgent(ABC):
         """
         raise NotImplementedError('Should implement in sub class')
 
+    def at_step_start(self):
+        pass
 
+    def at_step_end(self):
+        pass
 
     def play(
             self,
@@ -442,28 +442,3 @@ class OffPolicyAgent(ABC):
                 self.display_message(f'Total reward: {total_reward}')
                 break
             steps += 1
-
-    '''delete this function later'''
-
-    @staticmethod
-    def concat_step_batches(*args):
-        """
-        Concatenate n-step batches.
-        Args:
-            *args: A list of numpy arrays which will be concatenated separately.
-
-        Returns:
-            A list of concatenated numpy arrays.
-        """
-        concatenated = []
-        for arg in args:
-            if len(arg.shape) == 1:
-                arg = np.expand_dims(arg, -1)
-            concatenated.append(arg.swapaxes(0, 1).reshape(-1, *arg.shape[2:]))
-        return concatenated
-
-    def at_step_start(self):
-        pass
-
-    def at_step_end(self):
-        pass

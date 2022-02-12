@@ -1,22 +1,17 @@
 from DeepRL.agents.DQNAgent import DQNAgent
 from DeepRL.networks.DQNNetwork import build_q_network
 from DeepRL.utils.ReplayBuffer import ExperienceReplay
-from DeepRL.utils.GameWrapper import GameWrapper
-
-import gym
+from DeepRL.utils.GameEnv import GameEnv
 
 
 def train_dqn():
-
     buffer_size = 10000
-    env = gym.make('DemonAttack-v0')
-    game = GameWrapper(env)
-    model = build_q_network(env.action_space.n)
+    game = GameEnv('DemonAttack-v0')
+    model = build_q_network(game.action_space.n)
     buffer = ExperienceReplay(size=buffer_size)
     agent = DQNAgent(game, model=model, buffer=buffer)
-
     agent.fill_buffer()
-    agent.fit(target_reward=10000, max_steps=100)
+    agent.learn(target_reward=1000)
 
 
 if __name__ == '__main__':
