@@ -32,7 +32,8 @@ def process_frame(frame, shape=(84, 84)):
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     frame = cv2.resize(frame, shape, interpolation=cv2.INTER_NEAREST)
     ret, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
-    frame = frame.reshape(-1, *shape)
+    frame = frame.reshape(*shape, -1)
     # cv2.imshow('DemonAttack', frame)
     return frame
+
 

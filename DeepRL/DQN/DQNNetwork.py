@@ -22,7 +22,7 @@ def dqn_loss(data, y_pred):
     return tf.keras.losses.mse(q_values, target_q_values)
 
 
-def create_dqn_model(history_length, optimizer=None, input_shape=(84, 84), n_action=6):
+def create_dqn_model(optimizer=None, input_shape=(84, 84), n_action=6):
     """
     Argument:
         data: action with corresponding reward
@@ -34,7 +34,7 @@ def create_dqn_model(history_length, optimizer=None, input_shape=(84, 84), n_act
     optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4) if optimizer is None else optimizer
     # Build a sequential model
     network = Sequential()
-    network.add(Input(shape=(input_shape[0], input_shape[1], history_length)))
+    network.add(Input(shape=(input_shape[0], input_shape[1], 1)))
     network.add((Conv2D(filters=32, kernel_size=(8, 8), kernel_initializer=VarianceScaling(scale=2.),
                         activation='relu', use_bias=False)))
     network.add(Conv2D(64, (4, 4), strides=2, kernel_initializer=VarianceScaling(scale=2.),
@@ -48,17 +48,34 @@ def create_dqn_model(history_length, optimizer=None, input_shape=(84, 84), n_act
     return network
 
 
-def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84), history_length=32):
+def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
     """Builds a dueling DQN as a Keras model
     Arguments:
         n_actions: Number of possible action the agent can take
         learning_rate: Learning rate
         input_shape: Shape of the preprocessed frame the model sees
-        history_length: Number of historical frames the agent can see
     Returns:
         A compiled Keras model
     """
-    model_input = Input(shape=(input_shape[0], input_shape[1], history_length))
+    '''
+    model = Sequential(
+        [
+            Input(shape=(input_shape[0], input_shape[1], 1)),
+            Conv2D(32, (8, 8), strides=4, kernel_initializer=VarianceScaling(scale=2.), activation='relu',
+                   use_bias=False),
+            Conv2D(64, (4, 4), strides=2, kernel_initializer=VarianceScaling(scale=2.), activation='relu',
+                   use_bias=False),
+            Conv2D(64, (3, 3), strides=1, kernel_initializer=VarianceScaling(scale=2.), activation='relu',
+                   use_bias=False),
+            Conv2D(1024, (7, 7), strides=1, kernel_initializer=VarianceScaling(scale=2.), activation='relu',
+                   use_bias=False),
+            Flatten(),
+            Dense(64, kernel_initializer=VarianceScaling(scale=2.)),
+            Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))
+        ]
+    )
+    '''
+    model_input = Input(shape=(input_shape[0], input_shape[1], 1))
     x = model_input  # normalize by 255
     x = Conv2D(32, (8, 8), strides=4, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
         x)
@@ -86,5 +103,6 @@ def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84), hist
     # Build model
     model = Model(model_input, q_vals)
     model.compile(Adam(learning_rate), loss=tf.keras.losses.Huber())
+    model.summary()
 
     return model

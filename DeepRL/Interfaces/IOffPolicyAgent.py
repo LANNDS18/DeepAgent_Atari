@@ -345,11 +345,11 @@ class OffPolicyAgent(ABC):
             f'train_step() should be implemented by {self.__class__.__name__} subclasses'
         )
 
-    def get_model_outputs(self, inputs, model, training=True):
+    def model_predict(self, x_pred, model, training=True):
         """
         Get single model outputs.
         Args:
-            inputs: Inputs as tensors / numpy arrays that are expected
+            x_pred: Inputs as tensors / numpy arrays that are expected
                 by the given model.
             model: A tf.keras.Model
             training: whether training or not
@@ -357,8 +357,7 @@ class OffPolicyAgent(ABC):
             Outputs single model
         """
         if isinstance(model, tf.keras.models.Model):
-            inputs = tf.reshape(-1, self.input_shape[0], self.input_shape[2], self.batch_size)
-            return model(inputs, training=training)
+            return model(x_pred, training=training)
         else:
             raise AttributeError('model should be a tf.keras.Model')
 
@@ -434,7 +433,7 @@ class OffPolicyAgent(ABC):
                     env_in_use.render(mode='rgb_array'), cv2.COLOR_BGR2RGB
                 )
                 cv2.imwrite(os.path.join(frame_dir, f'{steps:05d}.jpg'), frame)
-            action = self.get_model_outputs(
+            action = self.model_predict(
                 self.state, self.model, False
             )[action_idx].numpy()
             self.state, reward, done, _ = env_in_use.step(action)

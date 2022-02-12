@@ -1,5 +1,7 @@
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.losses import MSE
+
 from DeepRL.Interfaces.IOffPolicyAgent import OffPolicyAgent
 
 
@@ -55,22 +57,21 @@ class DQNAgent(OffPolicyAgent):
         """
         return tf.concat((batch_indices, tf.cast(actions[:, tf.newaxis], tf.int64)), -1)
 
-    # @tf.function
-    def get_model_outputs(self, inputs, models, training=True):
+    @tf.function
+    def model_predict(self, inputs, model, training=True):
         """
         Get model outputs (action)
         Args:
             inputs: Inputs as tensors / numpy arrays that are expected
                 by the given model.
-            models: A tf.keras.Model or a list of tf.keras.Model(s)
-            training
+            model: A tf.keras.Model or a list of tf.keras.Model(s)
+            training:
         Returns:
             Outputs that is expected from the given model.
         """
-        q_values = models.predict(inputs)
-        print(q_values)
-        # q_values = super(DQNAgent, self).get_model_outputs(inputs, models, training=training)
-        return tf.argmax(q_values, 1), q_values
+        # q_values = model.predict(inputs)
+        q_values = super(DQNAgent, self).model_predict(inputs, model, training=training)
+        return tf.argmax(q_values, axis=1), q_values
 
     def update_epsilon(self):
         """
@@ -99,7 +100,9 @@ class DQNAgent(OffPolicyAgent):
         """
         if np.random.random() < self.epsilon:
             return np.random.randint(0, self.n_actions)
-        return self.get_model_outputs(self.state, self.model)[0]
+        state = np.array([self.state])
+        action = self.model_predict(state, self.model)[0].numpy().tolist()[0]
+        return action
 
     def get_targets(self, state, action, reward, done, new_states):
         """
@@ -114,11 +117,10 @@ class DQNAgent(OffPolicyAgent):
         Returns:
             Target values, a tensor of shape (total buffer batch size, self.n_actions)
         """
-        print('state shape', state.shape)
-        q_states = self.get_model_outputs(state, self.model)[1]
+        q_states = self.model_predict(state, self.model)[1]
 
         new_state_values = tf.reduce_max(
-            self.get_model_outputs(new_states, self.target_model)[1], axis=1
+            self.model_predict(new_states, self.target_model)[1], axis=1
         )
 
         new_state_values = tf.where(
@@ -143,14 +145,15 @@ class DQNAgent(OffPolicyAgent):
             x: States tensor
             y: Targets tensor
 
-            with tf.GradientTape() as tape:
-            # print(tf.shape(x))
-            y_pred = self.get_model_outputs(x, self.model)[1]
+        Below not compatible with Apple Silicon
+        with tf.GradientTape() as tape:
+            y_pred = self.model_predict(x, self.model)[1]
             loss = MSE(y, y_pred)
-            self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
+        self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
+
         """
-        x = self.model.fit(x, y)
-        print('loss', x)
+
+        self.model.fit(x, y, batch_size=self.batch_size)
 
 
     def at_step_start(self):
@@ -165,11 +168,9 @@ class DQNAgent(OffPolicyAgent):
         Perform 1 step which controls action_selection, interaction with environments
         in self.env, batching and gradient updates.
         """
-        '''
+
         action = tf.numpy_function(self.get_action, [], tf.int64)
-        print('action = action')
         tf.numpy_function(self.step_env, [action, True], [])
-        self.step_env(action=action, store_in_buffers=True)
         training_batch = tf.numpy_function(
             self.buffer.get_sample,
             [],
@@ -177,16 +178,11 @@ class DQNAgent(OffPolicyAgent):
         )
         '''
         action = self.get_action()
-        self.step_env(action, True)
-        # state, action, reward, done, new_state
+        self.step_env(action=action, store_in_buffers=True)
         training_batch = self.buffer.get_sample()
-        # Main DQN estimates best action in new states
-        training_batch[4] = np.reshape(training_batch[4], (-1, 84, 84, 32))
-        training_batch[0] = np.reshape(training_batch[0], (-1, 84, 84, 32))
-        # q_value = self.model.predict(training_batch[0])
-        # arg_q_max = q_value.argmax(axis=1)
+        '''
+
         targets = self.get_targets(*training_batch)
-        # y_train = targets
         self.update_gradients(training_batch[0], targets)
 
     def at_step_end(self):

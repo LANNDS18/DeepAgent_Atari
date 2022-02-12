@@ -5,9 +5,10 @@ from DeepRL.Common import process_frame
 class GameWrapper(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env):
+    def __init__(self, env, output_shape=(84, 84)):
         super().__init__(env)
         self.env = env
+        self.output_shape = output_shape
 
     @staticmethod
     def process_reward(reward):
@@ -20,7 +21,7 @@ class GameWrapper(gym.Wrapper):
         return reward
 
     def reset(self):
-        return process_frame(self.env.reset())
+        return process_frame(self.env.reset(), shape=self.output_shape)
 
     def step(self, action, render_mode='human'):
         """Performs an action and observes the result
@@ -37,5 +38,5 @@ class GameWrapper(gym.Wrapper):
         next_state = process_frame(next_state)
         if render_mode == 'human':
             self.env.render()
-
+        reward = self.process_reward(reward)
         return next_state, reward, done, info
