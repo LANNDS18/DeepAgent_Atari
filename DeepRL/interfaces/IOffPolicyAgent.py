@@ -13,7 +13,7 @@ from datetime import timedelta
 from pathlib import Path
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepRL.Common import write_from_dict
+from DeepRL.utils.Common import write_from_dict
 
 
 class OffPolicyAgent(ABC):

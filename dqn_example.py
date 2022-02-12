@@ -1,7 +1,7 @@
-from DeepRL.DQN.DQNAgent import DQNAgent
-from DeepRL.DQN.DQNNetwork import build_q_network
-from DeepRL.ReplayBuffer import ExperienceReplay
-from DeepRL.GameWrapper import GameWrapper
+from DeepRL.agents.DQNAgent import DQNAgent
+from DeepRL.networks.DQNNetwork import build_q_network
+from DeepRL.utils.ReplayBuffer import ExperienceReplay
+from DeepRL.utils.GameWrapper import GameWrapper
 
 import gym
 

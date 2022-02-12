@@ -1,5 +1,5 @@
 import gym
-from DeepRL.Common import process_frame
+from DeepRL.utils.Common import process_frame
 
 
 class GameWrapper(gym.Wrapper):

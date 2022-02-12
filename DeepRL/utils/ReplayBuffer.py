@@ -1,5 +1,5 @@
 from collections import deque
-from DeepRL.Interfaces.IBufferBase import IBaseBuffer
+from DeepRL.interfaces.IBufferBase import IBaseBuffer
 import random
 import numpy as np
 

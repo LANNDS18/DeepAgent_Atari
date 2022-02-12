@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.losses import MSE
 
-from DeepRL.Interfaces.IOffPolicyAgent import OffPolicyAgent
+from tensorflow.keras.losses import MSE
+from DeepRL.interfaces.IOffPolicyAgent import OffPolicyAgent
 
 
 class DQNAgent(OffPolicyAgent):
@@ -19,7 +19,7 @@ class DQNAgent(OffPolicyAgent):
             **kwargs,
     ):
         """
-        Initialize DQN agent.
+        Initialize networks agent.
         Args:
             env: A list of gym environments.
             model: tf.keras.model.Model that is expected to be compiled
@@ -146,15 +146,13 @@ class DQNAgent(OffPolicyAgent):
             y: Targets tensor
 
         Below not compatible with Apple Silicon
+
+
+        """
         with tf.GradientTape() as tape:
             y_pred = self.model_predict(x, self.model)[1]
             loss = MSE(y, y_pred)
         self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
-
-        """
-
-        self.model.fit(x, y, batch_size=self.batch_size)
-
 
     def at_step_start(self):
         """

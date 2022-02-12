@@ -5,7 +5,7 @@ from tensorflow.keras.optimizers import Adam
 
 
 def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
-    """Builds a dueling DQN as a Keras model
+    """Builds a dueling networks as a Keras model
     Arguments:
         n_actions: Number of possible action the agent can take
         learning_rate: Learning rate
