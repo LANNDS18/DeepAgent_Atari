@@ -25,7 +25,6 @@ def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
     x = Dense(512, kernel_initializer=VarianceScaling(scale=2.))(x)
     out = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))(x)
 
-    # Build model
     model = Model(model_input, out)
     model.compile(Adam(learning_rate))
     model.summary()
