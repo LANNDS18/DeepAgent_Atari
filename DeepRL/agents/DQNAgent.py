@@ -190,6 +190,7 @@ class DQNAgent(BaseAgent):
         """
         self.init_training(target_reward, max_steps, monitor_session)
         while True:
+            # Loop once = 1 step
             self.check_episodes()
             if self.check_finish_training():
                 break

@@ -64,8 +64,8 @@ class BaseAgent(ABC):
         self.n_actions = self.env.action_space.n
         self.input_shape = self.env.observation_space.shape
 
-        self.best_reward = -float('inf')
-        self.mean_reward = -float('inf')
+        self.best_reward = 0
+        self.mean_reward = 0
         self.episode_reward = 0
         self.plateau_count = 0
         self.early_stop_count = 0
@@ -80,10 +80,7 @@ class BaseAgent(ABC):
         self.frame_speed = 0
 
         self.done = False
-        self.done_count = 0  # consider deleting this later
         self.target_reward = None
-
-        self.is_img = len(self.state.shape) >= 2
 
         self.batch_size = self.buffer.batch_size
 
@@ -116,18 +113,6 @@ class BaseAgent(ABC):
 
     def reset_env(self):
         self.state = self.env.reset()
-
-    def save_best_model(self):
-        if self.mean_reward > self.best_reward:
-            self.plateau_count = 0
-            self.early_stop_count = 0
-            self.display_message(
-                f'Best reward updated: {colored(str(self.best_reward), "red")} -> '
-                f'{colored(str(self.mean_reward), "green")}'
-            )
-            if self.model_path:
-                self.model.save_weights(self.model_path)
-        self.best_reward = max(self.mean_reward, self.best_reward)
 
     def display_metrics(self):
         """
@@ -163,7 +148,7 @@ class BaseAgent(ABC):
         )
         self.display_message(', '.join(display))
 
-    def update_metrics(self):
+    def check_training_state(self):
         """
         Update progress metrics which consist of last reset step and time used
         for calculation of fps, and update mean and best reward. The model is
@@ -172,13 +157,24 @@ class BaseAgent(ABC):
         Returns:
             None
         """
-        self.save_best_model()
+        if self.episode_reward > self.best_reward:
+            self.plateau_count = 0
+            self.early_stop_count = 0
+            self.display_message(
+                f'Best reward updated: {colored(str(self.best_reward), "red")} -> '
+                f'{colored(str(self.episode_reward), "green")}'
+            )
+            self.best_reward = max(self.episode_reward, self.best_reward)
+            if self.model_path:
+                self.model.save_weights(self.model_path)
+
         if (
                 self.divergence_monitoring_steps
                 and self.steps >= self.divergence_monitoring_steps
                 and self.mean_reward <= self.best_reward
         ):
             self.plateau_count += 1
+
         if self.plateau_count >= self.plateau_reduce_patience:
             current_lr = self.model.optimizer.learning_rate
             new_lr = current_lr * self.plateau_reduce_factor
@@ -215,7 +211,7 @@ class BaseAgent(ABC):
                 state = self.env.reset()
             filled = buffer.current_size
             self.display_message(
-                f'\rFilling replay buffer | '
+                f'\rFilling experience replay buffer => '
                 f'{filled}/{total_size}',
                 end='',
             )
@@ -229,11 +225,12 @@ class BaseAgent(ABC):
         Returns:
             None
         """
-        if self.done_count >= 1:
-            self.update_metrics()
+        if self.done:
+            self.check_training_state()
             self.last_reset_time = perf_counter()
             self.display_metrics()
-            self.done_count = 0
+            self.done = False
+            self.episode_reward = 0
 
     def check_finish_training(self):
         """
@@ -290,10 +287,8 @@ class BaseAgent(ABC):
         if done:
             if self.history_path:
                 self.update_history(self.episode_reward)
-            self.done_count += 1
             self.total_rewards.append(self.episode_reward)
             self.terminal_episodes += 1
-            self.episode_reward = 0
             self.state = self.env.reset()
         self.steps += 1
         return observations
