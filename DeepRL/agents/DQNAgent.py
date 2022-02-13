@@ -155,6 +155,7 @@ class DQNAgent(BaseAgent):
         """
         Execute steps that will run before self.train_step() which decays epsilon.
         """
+        self.env.render()
         self.update_epsilon()
 
     @tf.function
@@ -194,7 +195,6 @@ class DQNAgent(BaseAgent):
             self.check_episodes()
             if self.check_finish_training():
                 break
-            self.env.render()
             self.at_step_start()
             self.train_step()
             self.at_step_end()

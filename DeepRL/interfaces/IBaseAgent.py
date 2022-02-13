@@ -13,7 +13,7 @@ from datetime import timedelta
 from pathlib import Path
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepRL.utils.Common import write_from_dict
+from DeepRL.utils.Common import write_from_dict, transform_reward
 
 
 class BaseAgent(ABC):
@@ -205,6 +205,7 @@ class BaseAgent(ABC):
         while buffer.current_size < buffer.initial_size:
             action = self.env.action_space.sample()
             new_state, reward, done, _ = self.env.step(action)
+            reward = transform_reward(reward)
             buffer.append(state, action, reward, done, new_state)
             state = new_state
             if done:
@@ -278,6 +279,7 @@ class BaseAgent(ABC):
         observations = []
         state = self.state
         new_state, reward, done, _ = self.env.step(action)
+        reward = transform_reward(reward)
         self.state = new_state
         self.done = done
         self.episode_reward += reward
