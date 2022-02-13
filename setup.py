@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 setup(
 
-    name='DeepRL',
+    name='deep_agent',
     version='1.0',
     description='A Deep Reinforcement Learning Framework',
     author='Wuwei Zhang',

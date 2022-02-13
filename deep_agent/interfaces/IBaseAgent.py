@@ -1,5 +1,4 @@
 import os
-import random
 import gym
 import cv2
 import numpy as np
@@ -13,7 +12,7 @@ from datetime import timedelta
 from pathlib import Path
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepRL.utils.Common import write_from_dict, transform_reward
+from deep_agent.utils.common import write_from_dict, transform_reward
 
 
 class BaseAgent(ABC):
@@ -30,7 +29,6 @@ class BaseAgent(ABC):
             n_steps=1,
             gamma=0.99,
             display_precision=2,
-            seed=None,
             model_path=None,
             history_path=None,
             plateau_reduce_factor=0.9,
@@ -49,7 +47,6 @@ class BaseAgent(ABC):
         self.gamma = gamma
 
         self.display_precision = display_precision
-        self.seed = seed
 
         self.model_path = model_path
         self.history_path = history_path
@@ -85,8 +82,6 @@ class BaseAgent(ABC):
         self.batch_size = self.buffer.batch_size
 
         self.reset_env()
-        if seed:
-            self.set_seeds(seed)
 
     def display_message(self, *args, **kwargs):
         """
@@ -98,23 +93,10 @@ class BaseAgent(ABC):
         if not self.quiet:
             print(*args, **kwargs)
 
-    def set_seeds(self, seed):
-        """
-        Set random seeds for numpy, tensorflow, random, gym
-        Args:
-            seed: int, random seed.
-        """
-        tf.random.set_seed(seed)
-        np.random.seed(seed)
-        self.env.seed(seed)
-        self.env.action_space.seed(seed)
-        os.environ['PYTHONHASHSEED'] = f'{seed}'
-        random.seed(seed)
-
     def reset_env(self):
         self.state = self.env.reset()
 
-    def display_metrics(self):
+    def display_learning_state(self):
         """
         Display progress metrics to the console when environments complete a full episode.
         Metrics consist of:
@@ -229,7 +211,7 @@ class BaseAgent(ABC):
         if self.done:
             self.check_training_state()
             self.last_reset_time = perf_counter()
-            self.display_metrics()
+            self.display_learning_state()
             self.done = False
             self.episode_reward = 0
 
@@ -367,7 +349,7 @@ class BaseAgent(ABC):
             target_reward: Target reward, if achieved, the training will stop
             max_steps: Maximum number of steps, if reached the training will stop.
             monitor_session: Session name to use for monitoring the training with wandb.
-
+        """
         self.init_training(target_reward, max_steps, monitor_session)
         while True:
             self.check_episodes()
@@ -376,8 +358,6 @@ class BaseAgent(ABC):
             self.at_step_start()
             self.train_step()
             self.at_step_end()
-        """
-        raise NotImplementedError('Should implement in sub class')
 
     def at_step_start(self):
         pass

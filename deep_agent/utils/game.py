@@ -1,5 +1,5 @@
 import gym
-from DeepRL.utils.Common import process_frame
+from deep_agent.utils.common import process_frame
 
 
 class GameEnv(gym.Wrapper):

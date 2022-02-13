@@ -1,5 +1,5 @@
 from collections import deque
-from DeepRL.interfaces.IAgentBase import IBaseBuffer
+from deep_agent.interfaces.IBaseBuffer import IBaseBuffer
 import random
 import numpy as np
 
@@ -53,6 +53,55 @@ class PrioritizedExperienceReplay(IBaseBuffer):
     traces存储数组以及trances_index索引数组,priorities优先级数组
     """
 
+    def __init__(self, size, **kwargs):
+        """
+        Initialize replay buffer.
+        Args:
+            size: Buffer maximum size.
+            **kwargs: kwargs passed to BaseBuffer.
+        """
+        super(PrioritizedExperienceReplay, self).__init__(size, **kwargs)
+        self.main_buffer = deque(maxlen=size)
+        self.temp_buffer = []
+
+    def append(self, *args):
+        """
+        Append experience and auto-allocate to temp buffer / main buffer(self)
+        Args:
+            *args: Items to store
+        Returns:
+            None
+        """
+        self.main_buffer.append(args)
+        self.current_size = len(self.main_buffer)
+
+    def get_sample(self):
+        """
+        Sample from stored experience.
+        Returns:
+            Same number of args passed to append, having self.batch_size as
+            first shape.
+        """
+        memories = random.sample(self.main_buffer, self.batch_size)
+
+        # 将优先级数组进行归一化，将优先级转换为概率分布，然后使用随机选择函数依照优先级概率分布确定取出记录的索引，最后依据索引从存储器中取出记录并拆解后返回。
+        probs = self.priorities ** self.prob_alpha
+
+        probs /= probs.sum()
+
+        self.traces_indexes = np.random.choice(len(self.traces), self.batch_size, p=probs, replace=False)
+
+        traces = [self.traces[idx] for idx in self.traces_indexes]
+
+        return unpack(traces)
+
+        if self.batch_size > 1:
+            return [np.array(item) for item in zip(*memories)]
+        return memories[0]
+
+    def __len__(self):
+        return self.current_size
+
     def __init__(self, capacity, size, steps=1, exclude_boundaries=False, prob_alpha=0.6, eps=1e-3):
 
         super().__init__(size)
@@ -104,19 +153,6 @@ class PrioritizedExperienceReplay(IBaseBuffer):
             return
         self.buffer = self.buffer[1:]
 
-    def get_sample(self, batch_size):
-
-        # 将优先级数组进行归一化，将优先级转换为概率分布，然后使用随机选择函数依照优先级概率分布确定取出记录的索引，最后依据索引从存储器中取出记录并拆解后返回。
-        probs = self.priorities ** self.prob_alpha
-
-        probs /= probs.sum()
-
-        self.traces_indexes = np.random.choice(len(self.traces), batch_size, p=probs, replace=False)
-
-        traces = [self.traces[idx] for idx in self.traces_indexes]
-
-        return unpack(traces)
-
     def last_traces_idxs(self):
         return self.traces_indexes.copy()
 
@@ -125,5 +161,3 @@ class PrioritizedExperienceReplay(IBaseBuffer):
 
         self.priorities[trace_idxs] = new_priorities + self.eps
 
-    def __len__(self):
-        return len(self.traces)

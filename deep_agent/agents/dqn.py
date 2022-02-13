@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.losses import MSE
-from DeepRL.interfaces.IBaseAgent import BaseAgent
+from deep_agent.interfaces.IBaseAgent import BaseAgent
 
 
 class DQNAgent(BaseAgent):
@@ -51,7 +51,6 @@ class DQNAgent(BaseAgent):
         Args:
             batch_indices: tf.range() result of the same shape as the batch size.
             actions: Action tensor of same shape as the batch size.
-
         Returns:
             Indices as a tensor.
         """
@@ -69,7 +68,6 @@ class DQNAgent(BaseAgent):
         Returns:
             index of max q-value, q-value list
         """
-        # equal to q_values = model.predict(inputs)
         q_values = super(DQNAgent, self).model_predict(inputs, model, training=training)
         return tf.argmax(q_values, axis=1), q_values
 

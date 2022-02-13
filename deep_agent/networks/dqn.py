@@ -4,7 +4,7 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
 
-def build_q_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
+def build_dqn_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)):
     """Builds a cnn networks as a Keras model
     Arguments:
         n_actions: Number of possible action the agent can take
