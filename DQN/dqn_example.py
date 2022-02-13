@@ -1,7 +1,7 @@
-from deep_agent.agents.dqn import DQNAgent
-from deep_agent.networks.dqn import build_dqn_network
-from deep_agent.utils.buffer import ExperienceReplay
-from deep_agent.utils.game import GameEnv
+from DeepRL.agents.dqn import DQNAgent
+from DeepRL.networks.dqn import build_dqn_network
+from DeepRL.utils.buffer import ExperienceReplay
+from DeepRL.utils.game import GameEnv
 
 
 def train_dqn():

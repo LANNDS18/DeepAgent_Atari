@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.keras.losses import MSE
-from deep_agent.interfaces.IBaseAgent import BaseAgent
+from DeepRL.interfaces.IBaseAgent import BaseAgent
 
 
 class DQNAgent(BaseAgent):

@@ -12,7 +12,7 @@ from datetime import timedelta
 from pathlib import Path
 from time import perf_counter, sleep
 from termcolor import colored
-from deep_agent.utils.common import write_from_dict, transform_reward
+from DeepRL.utils.common import write_from_dict, transform_reward
 
 
 class BaseAgent(ABC):
