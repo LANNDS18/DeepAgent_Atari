@@ -81,7 +81,7 @@ class BaseAgent(ABC):
         self.log_history = log_history
 
         if self.model_path and self.log_history:
-            self.history_dict_path = self.model_path + 'checkpoint.json'
+            self.history_dict_path = self.model_path + 'history_check_point.json'
             self.train_log_dir = self.model_path + '/log' + datetime.now().strftime("%Y%m%d-%H%M%S")
 
     def display_message(self, *args, **kwargs):
@@ -272,7 +272,7 @@ class BaseAgent(ABC):
         Load previous training session metadata and update agent metrics to go from there.
         """
         if os.path.exists(self.history_dict_path):
-            previous_history = pd.read_json(self.model_path + 'checkpoint.json').to_dict()
+            previous_history = pd.read_json(self.history_dict_path).to_dict()
             self.mean_reward = previous_history['mean_reward']
             self.best_reward = previous_history['best_reward']
             history_start_steps = previous_history['step'][0]

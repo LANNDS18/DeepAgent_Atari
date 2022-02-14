@@ -1,6 +1,6 @@
 """The parameter for training models"""
 
-'''Common Parameters'''
+'''Env Parameters'''
 ENV_NAME = 'DemonAttack-v0'
 IMAGE_SHAPE = (84, 84)
 
