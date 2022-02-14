@@ -4,12 +4,10 @@ import cv2
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import wandb
 
 from abc import ABC
 from collections import deque
-from datetime import timedelta
-from pathlib import Path
+from datetime import timedelta, datetime
 from time import perf_counter, sleep
 from termcolor import colored
 from DeepRL.utils.common import write_from_dict, normalize_reward
@@ -28,12 +26,13 @@ class BaseAgent(ABC):
             mean_reward_step=100,
             gamma=0.99,
             model_path=None,
-            history_path=None,
+            log_history=False,
             plateau_reduce_factor=0.9,
             plateau_reduce_patience=10,
             early_stop_patience=3,
             divergence_monitoring_steps=None,
             quiet=False,
+            epsilon=0.1
     ):
         self.env = env
         self.model = model
@@ -42,9 +41,6 @@ class BaseAgent(ABC):
         self.total_rewards = deque(maxlen=mean_reward_step)
 
         self.gamma = gamma
-
-        self.model_path = model_path
-        self.history_path = history_path
 
         self.plateau_reduce_factor = plateau_reduce_factor
         self.plateau_reduce_patience = plateau_reduce_patience
@@ -77,6 +73,16 @@ class BaseAgent(ABC):
         self.batch_size = self.buffer.batch_size
 
         self.reset_env()
+        self.train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+
+        self.epsilon = epsilon
+
+        self.model_path = model_path
+        self.log_history = log_history
+
+        if self.model_path and self.log_history:
+            self.history_dict_path = self.model_path + 'checkpoint.json'
+            self.train_log_dir = self.model_path + '/log' + datetime.now().strftime("%Y%m%d-%H%M%S")
 
     def display_message(self, *args, **kwargs):
         """
@@ -94,13 +100,6 @@ class BaseAgent(ABC):
     def display_learning_state(self):
         """
         Display progress metrics to the console when environments complete a full episode.
-        Metrics consist of:
-            - time: Time since training started.
-            - steps: Time steps so far.
-            - terminal_episodes: Finished terminal_episodes / episodes that resulted in a terminal state.
-            - speed: Frame speed/s
-            - mean reward: Mean game total reward.
-            - best reward: Highest total episode score obtained.
         """
         display_titles = (
             'time',
@@ -130,9 +129,6 @@ class BaseAgent(ABC):
         Update progress metrics which consist of last reset step and time used
         for calculation of fps, and update mean and best reward. The model is
         saved if there is a checkpoint path specified.
-
-        Returns:
-            None
         """
         if self.episode_reward > self.best_reward:
             self.plateau_count = 0
@@ -172,9 +168,6 @@ class BaseAgent(ABC):
     def fill_buffer(self):
         """
         Fill replay buffer up to its initial size.
-
-        Returns:
-            None
         """
         total_size = self.buffer.initial_size
         buffer = self.buffer
@@ -196,14 +189,23 @@ class BaseAgent(ABC):
         self.display_message('')
         self.reset_env()
 
+    def record_tensorboard(self):
+        train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
+        with train_summary_writer.as_default():
+            tf.summary.scalar('episode reward', self.episode_reward, step=self.steps)
+            tf.summary.scalar('mean reward', self.mean_reward, step=self.steps)
+            tf.summary.scalar('loss', self.train_loss.result(), step=self.steps)
+            tf.summary.scalar('epsilon', self.epsilon, step=self.steps)
+
     def check_episodes(self):
         """
         Check environment done counts to display progress and update metrics.
-
-        Returns:
-            None
         """
         if self.done:
+            if self.model_path and self.log_history:
+                self.update_history()
+                self.record_tensorboard()
+            self.train_loss.reset_states()
             self.check_training_state()
             self.last_reset_time = perf_counter()
             self.display_learning_state()
@@ -213,7 +215,6 @@ class BaseAgent(ABC):
     def check_finish_training(self):
         """
         Check whether a target reward or maximum number of steps is reached.
-
         Returns:
             bool
         """
@@ -221,29 +222,25 @@ class BaseAgent(ABC):
             self.display_message(f'Early stopping')
             return True
         if self.target_reward and self.mean_reward >= self.target_reward:
-            self.display_message(f'Reward achieved in {self.steps} steps')
+            self.display_message(f'Mean Reward achieved in {self.steps} steps')
             return True
         if self.max_steps and self.steps >= self.max_steps:
             self.display_message(f'Maximum steps exceeded')
             return True
         return False
 
-    def update_history(self, episode_reward):
+    def update_history(self):
         """
         Write 1 episode stats to .parquet history checkpoint.
-        Args:
-            episode_reward: int, a finished episode reward
-        Returns:
-            None
         """
         data = {
             'mean_reward': [self.mean_reward],
             'best_reward': [self.best_reward],
-            'episode_reward': [episode_reward],
+            'episode_reward': [self.episode_reward],
             'step': [self.steps],
             'time': [perf_counter() - self.training_start_time],
         }
-        write_from_dict(data, self.history_path)
+        write_from_dict(data, path=self.history_dict_path)
 
     def step_env(self, action, store_in_buffers=False):
         """
@@ -264,8 +261,6 @@ class BaseAgent(ABC):
         if store_in_buffers:
             self.buffer.append(*observation)
         if done:
-            if self.history_path:
-                self.update_history(self.episode_reward)
             self.total_rewards.append(self.episode_reward)
             self.terminal_episodes += 1
             self.state = self.env.reset()
@@ -274,37 +269,33 @@ class BaseAgent(ABC):
 
     def load_history_from_path(self):
         """
-        Load previous training session metadata and update agent metrics
-            to go from there.
+        Load previous training session metadata and update agent metrics to go from there.
         """
-        previous_history = pd.read_parquet(self.history_path)
-        last_row = previous_history.loc[previous_history['time'].idxmax()]
-        self.mean_reward = last_row['mean_reward']
-        self.best_reward = previous_history['best_reward'].max()
-        history_start_steps = last_row['step']
-        history_start_time = last_row['time']
-        self.training_start_time = perf_counter() - history_start_time
-        self.last_reset_step = self.steps = int(history_start_steps)
-        self.total_rewards.append(last_row['episode_reward'])
-        self.terminal_episodes = previous_history.shape[0]
+        if os.path.exists(self.history_dict_path):
+            previous_history = pd.read_json(self.model_path + 'checkpoint.json').to_dict()
+            self.mean_reward = previous_history['mean_reward']
+            self.best_reward = previous_history['best_reward']
+            history_start_steps = previous_history['step'][0]
+            history_start_time = previous_history['time'][0]
+            self.training_start_time = perf_counter() - history_start_time
+            self.last_reset_step = self.steps = int(history_start_steps)
+            self.total_rewards.append(previous_history['episode_reward'][0])
+            self.terminal_episodes = previous_history.shape[0]
 
-    def init_training(self, target_reward, max_steps, monitor_session):
+    def init_training(self, target_reward, max_steps):
         """
-        Initialize training start time, wandb session & model (self.model / self.target_model)
+        Initialize training start time & model (self.model / self.target_model)
         Args:
             target_reward: Total reward per game value that whenever achieved,
                 the training will stop.
             max_steps: Maximum time steps, if exceeded, the training will stop.
-            monitor_session: Wandb session name.
         """
+        if self.model_path and self.log_history:
+            self.load_history_from_path()
         self.target_reward = target_reward
         self.max_steps = max_steps
-        if monitor_session:
-            wandb.init(name=monitor_session)
         self.training_start_time = perf_counter()
         self.last_reset_time = perf_counter()
-        if self.history_path and Path(self.history_path).exists():
-            self.load_history_from_path()
 
     def train_step(self):
         """
@@ -335,7 +326,6 @@ class BaseAgent(ABC):
             self,
             target_reward=None,
             max_steps=None,
-            monitor_session=None,
     ):
         """
         Common training loop shared by subclasses, monitors training status
@@ -343,9 +333,8 @@ class BaseAgent(ABC):
         Args:
             target_reward: Target reward, if achieved, the training will stop
             max_steps: Maximum number of steps, if reached the training will stop.
-            monitor_session: Session name to use for monitoring the training with wandb.
         """
-        self.init_training(target_reward, max_steps, monitor_session)
+        self.init_training(target_reward, max_steps)
         while True:
             self.check_episodes()
             if self.check_finish_training():
@@ -380,9 +369,6 @@ class BaseAgent(ABC):
             max_steps: Maximum environment steps.
             action_idx: Index of action output by self.model
             frame_frequency: If frame_dir is specified, save frames every n frames.
-
-        Returns:
-            None
         """
         self.reset_env()
         total_reward = 0

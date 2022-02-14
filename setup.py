@@ -15,12 +15,10 @@ setup(
         'tensorflow-metal',
         'termcolor',
         'pandas',
-        'wandb',
-        'tensorflow',
+        'tensorflow' or 'tensorflow-macos',
         'scipy',
         'gym',
         'numpy',
-        'pyarrow',
         'matplotlib',
         'opencv-python'
     ],

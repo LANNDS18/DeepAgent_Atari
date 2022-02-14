@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
-import pyarrow as pa
-import pyarrow.parquet as pq
+import json
 
 
 def normalize_reward(reward: float):
@@ -10,13 +9,12 @@ def normalize_reward(reward: float):
 
 def write_from_dict(_dict, path):
     """
-    Write to .parquet given a dict
     Args:
         _dict: Dictionary of label: [scalar]
-        path: Path to .parquet file.
+        path: Path to .json file.
     """
-    table = pa.Table.from_pydict(_dict)
-    pq.write_to_dataset(table, root_path=path, compression='gzip')
+    with open(path, 'w') as fp:
+        json.dump(_dict, fp)
 
 
 def process_frame(frame, shape=(84, 84)):

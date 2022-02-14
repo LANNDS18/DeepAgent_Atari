@@ -12,12 +12,8 @@ BUFFER_SIZE = 10000
 BATCH_SIZE = 32
 
 '''Agent Parameters'''
-GAMMA = 0.99
+GAMMA = 0.95
 
 '''Model Paths'''
 DQN_PATH = 'models/dqn/'
 DDDQN_PATH = 'models/dddqn/'
-
-'''History Paths'''
-DQN_HISTORY_PATH = 'models/dqn/history'
-DDDQN_HISTORY_PATH = 'models/dddqn/history'

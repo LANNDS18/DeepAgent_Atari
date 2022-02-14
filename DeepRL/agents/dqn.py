@@ -142,15 +142,12 @@ class DQNAgent(BaseAgent):
         Args:
             x: States tensor
             y: Targets tensor
-
-        Below not compatible with Apple Silicon
-
-
         """
         with tf.GradientTape() as tape:
             y_pred = self.model_predict(x, self.model)[1]
             loss = MSE(y, y_pred)
         self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
+        self.train_loss(loss)
 
     def at_step_start(self):
         """
@@ -182,15 +179,13 @@ class DQNAgent(BaseAgent):
             self,
             target_reward=None,
             max_steps=None,
-            monitor_session=None,
     ):
         """
         Args:
             target_reward: Target reward, if achieved, the training will stop
             max_steps: Maximum number of steps, if reached the training will stop.
-            monitor_session: Session name to use for monitoring the training with wandb.
         """
-        self.init_training(target_reward, max_steps, monitor_session)
+        self.init_training(target_reward, max_steps)
         # 1 loop = 1 step in env
         while True:
             self.check_episodes()

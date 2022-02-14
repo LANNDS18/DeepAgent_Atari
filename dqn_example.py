@@ -16,9 +16,10 @@ def train_dqn():
                            buffer=buffer,
                            gamma=GAMMA,
                            model_path=DDDQN_PATH,
+                           log_history=True
                            )
     agent.fill_buffer()
-    agent.learn(max_steps=10000, monitor_session='LANNDS18')
+    agent.learn(max_steps=10000)
 
 
 if __name__ == '__main__':
