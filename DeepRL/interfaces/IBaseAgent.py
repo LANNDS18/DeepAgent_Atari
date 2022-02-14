@@ -12,7 +12,7 @@ from datetime import timedelta
 from pathlib import Path
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepRL.utils.common import write_from_dict, transform_reward
+from DeepRL.utils.common import write_from_dict, normalize_reward
 
 
 class BaseAgent(ABC):
@@ -26,27 +26,22 @@ class BaseAgent(ABC):
             model,
             buffer,
             mean_reward_step=100,
-            n_steps=1,
             gamma=0.99,
-            display_precision=2,
             model_path=None,
             history_path=None,
             plateau_reduce_factor=0.9,
             plateau_reduce_patience=10,
             early_stop_patience=3,
             divergence_monitoring_steps=None,
-            quiet=False
+            quiet=False,
     ):
         self.env = env
         self.model = model
         self.buffer = buffer
 
-        self.n_steps = n_steps
         self.total_rewards = deque(maxlen=mean_reward_step)
 
         self.gamma = gamma
-
-        self.display_precision = display_precision
 
         self.model_path = model_path
         self.history_path = history_path
@@ -171,7 +166,7 @@ class BaseAgent(ABC):
         )
         self.last_reset_step = self.steps
         self.mean_reward = np.around(
-            np.mean(self.total_rewards), self.display_precision
+            np.mean(self.total_rewards), 5
         )
 
     def fill_buffer(self):
@@ -187,7 +182,7 @@ class BaseAgent(ABC):
         while buffer.current_size < buffer.initial_size:
             action = self.env.action_space.sample()
             new_state, reward, done, _ = self.env.step(action)
-            reward = transform_reward(reward)
+            reward = normalize_reward(reward)
             buffer.append(state, action, reward, done, new_state)
             state = new_state
             if done:
@@ -261,7 +256,7 @@ class BaseAgent(ABC):
         observations = []
         state = self.state
         new_state, reward, done, _ = self.env.step(action)
-        reward = transform_reward(reward)
+        reward = normalize_reward(reward)
         self.state = new_state
         self.done = done
         self.episode_reward += reward

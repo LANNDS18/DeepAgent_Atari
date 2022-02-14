@@ -4,9 +4,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 
-def transform_reward(reward: float):
-    if reward < 0:
-        reward = -5.00
+def normalize_reward(reward: float):
     return reward
 
 
@@ -32,7 +30,7 @@ def process_frame(frame, shape=(84, 84)):
     """
     frame = frame.astype(np.uint8)  # cv2 requires np.uint8, other dtypes will not work
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    frame = cv2.resize(frame, shape, interpolation=cv2.INTER_NEAREST)
-    ret, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
+    frame = cv2.resize(frame, shape)
+    # ret, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
     frame = frame.reshape(*shape, -1)
     return frame

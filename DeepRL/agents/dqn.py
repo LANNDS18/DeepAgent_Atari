@@ -68,6 +68,8 @@ class DQNAgent(BaseAgent):
         Returns:
             index of max q-value, q-value list
         """
+        if len(self.input_shape) > 1:
+            inputs = tf.cast(inputs, tf.float32) / 255.0
         q_values = super(DQNAgent, self).model_predict(inputs, model, training=training)
         return tf.argmax(q_values, axis=1), q_values
 
@@ -88,14 +90,13 @@ class DQNAgent(BaseAgent):
 
     def get_action(self):
         """
-        Generate action following an epsilon-greedy policy.
+        Generate action following a policy.
 
         Returns:
             A random action or Q argmax.
         """
         if np.random.random() < self.epsilon:
             return np.random.randint(0, self.n_actions)
-        # state = np.array([self.state])
         state = tf.expand_dims(self.state, axis=0)
         action = self.model_predict(state, self.model)[0].numpy().tolist()[0]
         return action
@@ -104,7 +105,7 @@ class DQNAgent(BaseAgent):
         """
         Get targets for gradient update.
         Args:
-            state: size = (total buffer batch size, *self.input_shape)
+            state: size = (batch size * self.input_shape)
             action: size =  buffer batch size
             reward: size =  buffer batch size
             done: size =  buffer batch size
@@ -126,7 +127,9 @@ class DQNAgent(BaseAgent):
 
         target_values = tf.identity(q_states)
 
-        target_value_update = new_state_values * self.gamma + tf.cast(reward, tf.float32)
+        target_value_update = \
+            new_state_values * self.gamma + tf.cast(reward, tf.float32)
+
         indices = self.get_action_indices(self.batch_indices, action)
         target_values = tf.tensor_scatter_nd_update(
             target_values, indices, target_value_update
@@ -188,8 +191,8 @@ class DQNAgent(BaseAgent):
             monitor_session: Session name to use for monitoring the training with wandb.
         """
         self.init_training(target_reward, max_steps, monitor_session)
+        # 1 loop = 1 step in env
         while True:
-            # Loop once = 1 step
             self.check_episodes()
             if self.check_finish_training():
                 break
