@@ -1,17 +1,24 @@
-from DeepRL.agents.dqn import DQNAgent
-from DeepRL.networks.dqn import build_dqn_network
+from DeepRL.networks.dueling import build_dueling_network
 from DeepRL.utils.buffer import ExperienceReplay
 from DeepRL.utils.game import GameEnv
+from DeepRL.agents.double_dqn import DoubleDQNAgent
 from config import *
 
 
 def train_dqn():
-    game = GameEnv('DemonAttack-v0')
-    model = build_dqn_network(game.action_space.n, learning_rate=LEARNING_RATE)
+
+    game = GameEnv(ENV_NAME, output_shape=IMAGE_SHAPE)
+    model = build_dueling_network(game.action_space.n, learning_rate=LEARNING_RATE, input_shape=IMAGE_SHAPE)
     buffer = ExperienceReplay(size=BUFFER_SIZE, batch_size=BATCH_SIZE)
-    agent = DQNAgent(game, model=model, buffer=buffer)
+
+    agent = DoubleDQNAgent(env=game,
+                           model=model,
+                           buffer=buffer,
+                           gamma=GAMMA,
+                           model_path=DDDQN_PATH,
+                           )
     agent.fill_buffer()
-    agent.learn(target_reward=1000)
+    agent.learn(max_steps=10000, monitor_session='LANNDS18')
 
 
 if __name__ == '__main__':

@@ -1,18 +1,23 @@
 """The parameter for training models"""
 
 '''Common Parameters'''
-IMAGE_SIZE = (84, 84)
+ENV_NAME = 'DemonAttack-v0'
+IMAGE_SHAPE = (84, 84)
 
 '''Network Parameters '''
 LEARNING_RATE = 1e-3
 
 """Buffer Parameters"""
-BUFFER_SIZE = 100000
-BATCH_SIZE = 64
+BUFFER_SIZE = 10000
+BATCH_SIZE = 32
 
 '''Agent Parameters'''
-GAMMA = 0.95
+GAMMA = 0.99
 
-'''Model Path'''
+'''Model Paths'''
+DQN_PATH = 'models/dqn/'
+DDDQN_PATH = 'models/dddqn/'
 
-
+'''History Paths'''
+DQN_HISTORY_PATH = 'models/dqn/history'
+DDDQN_HISTORY_PATH = 'models/dddqn/history'

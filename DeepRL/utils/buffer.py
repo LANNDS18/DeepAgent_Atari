@@ -48,10 +48,6 @@ class ExperienceReplay(IBaseBuffer):
 
 
 class PrioritizedExperienceReplay(IBaseBuffer):
-    """
-    初始化参数，包括capacity是存储器的存储容量,steps存储记录的步数,exclude_boundaries是标记是否存储边界值,prob_alpha 概率系数,
-    traces存储数组以及trances_index索引数组,priorities优先级数组
-    """
 
     def __init__(self, size, **kwargs):
         """
