@@ -21,7 +21,7 @@ def train_dddqn():
                            gamma=GAMMA,
                            epsilon_start=EPSILON_START,
                            epsilon_end=EPSILON_END,
-                           epsilon_decay_steps=EPSILON_END,
+                           epsilon_decay_steps=EPSILON_DECAY_STEPS,
                            model_path=DDDQN_PATH,
                            log_history=True,)
 

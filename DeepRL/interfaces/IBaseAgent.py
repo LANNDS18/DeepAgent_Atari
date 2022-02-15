@@ -240,6 +240,7 @@ class BaseAgent(ABC):
             'episode_reward': [self.episode_reward],
             'step': [self.steps],
             'time': [perf_counter() - self.training_start_time],
+            'terminal_episodes': [self.terminal_episodes]
         }
         write_from_dict(data, path=self.history_dict_path)
 
@@ -273,14 +274,14 @@ class BaseAgent(ABC):
         """
         if Path(self.history_dict_path).is_file():
             previous_history = pd.read_json(self.history_dict_path).to_dict()
-            self.mean_reward = previous_history['mean_reward']
-            self.best_reward = previous_history['best_reward']
+            self.mean_reward = previous_history['mean_reward'][0]
+            self.best_reward = previous_history['best_reward'][0]
             history_start_steps = previous_history['step'][0]
             history_start_time = previous_history['time'][0]
             self.training_start_time = perf_counter() - history_start_time
             self.last_reset_step = self.steps = int(history_start_steps)
             self.total_rewards.append(previous_history['episode_reward'][0])
-            self.terminal_episodes = previous_history.shape[0]
+            self.terminal_episodes = previous_history['terminal_episodes'][0]
 
     def init_training(self, target_reward, max_steps):
         """
