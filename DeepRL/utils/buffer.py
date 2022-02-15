@@ -37,9 +37,7 @@ class ExperienceReplay(IBaseBuffer):
             first shape.
         """
         memories = random.sample(self.main_buffer, self.batch_size)
-        if self.batch_size > 1:
-            return [np.array(item) for item in zip(*memories)]
-        return memories[0]
+        return [np.array(item) for item in zip(*memories)]
 
     def __len__(self):
         return self.current_size
@@ -109,7 +107,6 @@ class PrioritizedExperienceReplay(IBaseBuffer):
         Args:
             abs_errors: abs of Y and Y_Predict
         """
-        print(abs_errors)
         self.priorities[self.index_buffer] = abs_errors + self.epsilon
 
     def __len__(self):

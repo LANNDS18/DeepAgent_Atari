@@ -25,6 +25,5 @@ def process_frame(frame, shape=(84, 84)):
     frame = frame.astype(np.uint8)  # cv2 requires np.uint8, other dtypes will not work
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     frame = cv2.resize(frame, shape)
-    # ret, frame = cv2.threshold(frame, 1, 255, cv2.THRESH_BINARY)
     frame = frame.reshape(*shape, -1)
     return frame
