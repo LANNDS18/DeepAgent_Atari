@@ -7,7 +7,7 @@ from collections import deque
 class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env_name, output_shape=(84, 84), frame_stack=1):
+    def __init__(self, env_name, output_shape=(84, 84), frame_stack=4):
         super().__init__(env_name)
         self.env = gym.make(env_name)
         self.output_shape = output_shape
