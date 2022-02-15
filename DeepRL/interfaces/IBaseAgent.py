@@ -244,13 +244,12 @@ class BaseAgent(ABC):
         }
         write_from_dict(data, path=self.history_dict_path)
 
-    def step_env(self, action, store_in_buffers=False):
+    def step_env(self, action):
         """
         Step environment in self.env_name, update metrics (if any done terminal_episodes)
             and return / store results.
         Args:
             action: An iterable of action to execute by environments.
-            store_in_buffers: If True, each observation is saved separately in respective buffer.
         """
         observations = []
         state = self.state
@@ -259,8 +258,7 @@ class BaseAgent(ABC):
         self.done = done
         self.episode_reward += reward
         observation = state, action, reward, done, new_state
-        if store_in_buffers:
-            self.buffer.append(*observation)
+        self.buffer.append(*observation)
         if done:
             self.total_rewards.append(self.episode_reward)
             self.terminal_episodes += 1

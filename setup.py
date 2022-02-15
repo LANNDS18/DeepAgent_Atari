@@ -23,5 +23,4 @@ setup(
         'opencv-python'
     ],
     packages=find_packages()
-
 )

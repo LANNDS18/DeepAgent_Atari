@@ -1,17 +1,25 @@
+import cv2
 import gym
 from DeepRL.utils.common import process_frame
+from collections import deque
 
 
 class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env_name, output_shape=(84, 84)):
+    def __init__(self, env_name, output_shape=(84, 84), frame_stack=1):
         super().__init__(env_name)
         self.env = gym.make(env_name)
         self.output_shape = output_shape
+        self.frame_stack = frame_stack
+        self.frames = deque([], maxlen=frame_stack)
 
     def reset(self):
-        return process_frame(self.env.reset(), shape=self.output_shape)
+        ob = self.env.reset()
+        for _ in range(self.frame_stack):
+            frame = process_frame(ob, shape=self.output_shape)
+            self.frames.append(frame)
+        return cv2.merge(self.frames)
 
     def step(self, action):
         """Performs an action and observes the result
@@ -25,4 +33,6 @@ class GameEnv(gym.Wrapper):
         """
         next_state, reward, done, info = self.env.step(action)
         next_state = process_frame(next_state)
-        return next_state, reward, done, info
+        self.frames.append(next_state)
+        return cv2.merge(self.frames), reward, done, info
+

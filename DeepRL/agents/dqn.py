@@ -161,7 +161,7 @@ class DQNAgent(BaseAgent):
         in self.env_name, batching and gradient updates.
         """
         action = tf.numpy_function(self.get_action, [], tf.int64)
-        tf.numpy_function(self.step_env, [action, True], [])
+        tf.numpy_function(self.step_env, [action], [])
         training_batch = tf.numpy_function(
             self.buffer.get_sample,
             [],
