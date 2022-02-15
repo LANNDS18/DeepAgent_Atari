@@ -19,11 +19,14 @@ def train_dddqn():
                            model=model,
                            buffer=buffer,
                            gamma=GAMMA,
+                           epsilon_start=EPSILON_START,
+                           epsilon_end=EPSILON_END,
+                           epsilon_decay_steps=EPSILON_END,
                            model_path=DDDQN_PATH,
-                           log_history=True)
+                           log_history=True,)
 
     agent.fill_buffer()
-    agent.learn(max_steps=int(1e9))
+    agent.learn(max_steps=TRAINING_STEP)
 
 
 if __name__ == '__main__':
