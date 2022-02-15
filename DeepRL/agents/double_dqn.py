@@ -14,17 +14,10 @@ class DoubleDQNAgent(DQNAgent):
         """
         Initialize networks agent.
         Args:
-            env: A list of gym environments.
+            env: A gym environment.
             model: tf.keras.models.Model that is expected to be compiled
                 with an optimizer before training starts.
-            buffer: A list of replay buffer objects whose length should match
-                `env_name`s'.
-            epsilon_start: Starting epsilon value which is used to control random exploration.
-                It should be decremented and adjusted according to implementation needs.
-            epsilon_end: End epsilon value which is the minimum exploration rate.
-            epsilon_decay_steps: Number of steps for epsilon to reach `epsilon_end`
-                from `epsilon_start`,
-            target_sync_steps: Steps to sync target models after each.
+            buffer: A buffer objects
             **kwargs: kwargs passed to super classes.
         """
         super(DoubleDQNAgent, self).__init__(env, model, buffer, **kwargs)

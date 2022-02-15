@@ -10,7 +10,7 @@ from collections import deque
 from datetime import timedelta, datetime
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepRL.utils.common import write_from_dict, normalize_reward
+from DeepRL.utils.common import write_from_dict
 
 
 class BaseAgent(ABC):
@@ -175,7 +175,6 @@ class BaseAgent(ABC):
         while buffer.current_size < buffer.initial_size:
             action = self.env.action_space.sample()
             new_state, reward, done, _ = self.env.step(action)
-            reward = normalize_reward(reward)
             buffer.append(state, action, reward, done, new_state)
             state = new_state
             if done:
@@ -253,7 +252,6 @@ class BaseAgent(ABC):
         observations = []
         state = self.state
         new_state, reward, done, _ = self.env.step(action)
-        reward = normalize_reward(reward)
         self.state = new_state
         self.done = done
         self.episode_reward += reward

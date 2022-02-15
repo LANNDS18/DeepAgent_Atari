@@ -21,11 +21,10 @@ class DQNAgent(BaseAgent):
         """
         Initialize networks agent.
         Args:
-            env: A list of gym environments.
-            model: tf.keras.model.Model that is expected to be compiled
+            env: A gym environment.
+            model: tf.keras.models.Model that is expected to be compiled
                 with an optimizer before training starts.
-            buffer: A list of replay buffer objects whose length should match
-                `env_name`s'.
+            buffer: A buffer objects
             epsilon_start: Starting epsilon value which is used to control random exploration.
                 It should be decremented and adjusted according to implementation needs.
             epsilon_end: End epsilon value which is the minimum exploration rate.

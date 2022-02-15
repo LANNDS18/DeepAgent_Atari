@@ -3,10 +3,6 @@ import numpy as np
 import json
 
 
-def normalize_reward(reward: float):
-    return reward
-
-
 def write_from_dict(_dict, path):
     """
     Args:
