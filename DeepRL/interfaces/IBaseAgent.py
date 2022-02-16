@@ -89,7 +89,7 @@ class BaseAgent(ABC):
 
         if self.model_path and self.log_history:
             self.history_dict_path = self.model_path + 'history_check_point.json'
-            self.train_log_dir = self.model_path + '/log' + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.train_log_dir = self.model_path + '/log/' + datetime.now().strftime("%Y%m%d-%H%M%S")
 
     def display_message(self, *args, **kwargs):
         """
@@ -198,11 +198,11 @@ class BaseAgent(ABC):
     def record_tensorboard(self):
         train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
         with train_summary_writer.as_default():
-            tf.summary.scalar('episode reward', self.episode_reward, step=self.steps)
             tf.summary.scalar('mean reward', self.mean_reward, step=self.steps)
+            tf.summary.scalar('q_value', self.q_metric.result(), step=self.steps)
+            tf.summary.scalar('episode reward', self.episode_reward, step=self.steps)
             tf.summary.scalar('loss', self.train_loss.result(), step=self.steps)
             tf.summary.scalar('epsilon', self.epsilon, step=self.steps)
-            tf.summary.scalar('q_value', self.q_metric, step=self.steps)
 
     def check_episodes(self):
         """
