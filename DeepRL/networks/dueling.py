@@ -33,8 +33,8 @@ def build_dueling_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)
     reduce_mean = Lambda(lambda w: tf.reduce_mean(w, axis=1, keepdims=True))
     output = Add()([value_output, Subtract()([advantage_output, reduce_mean(advantage_output)])])
 
-    model = Model(input, output)
-    model.compile(Adam(learning_rate))
+    model = Model(model_input, output)
+    model.compile(Adam(learning_rate=learning_rate))
     model.summary()
 
     return model

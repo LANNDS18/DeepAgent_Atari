@@ -27,7 +27,7 @@ def build_dqn_network(n_actions, learning_rate=0.00001, input_shape=(84, 84), fr
     out = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))(x)
 
     model = Model(model_input, out)
-    model.compile(Adam(learning_rate))
+    model.compile(Adam(learning_rate=learning_rate))
     model.summary()
 
     return model
