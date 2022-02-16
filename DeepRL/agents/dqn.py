@@ -1,7 +1,5 @@
 import numpy as np
 import tensorflow as tf
-
-from tensorflow.keras.losses import MSE
 from DeepRL.interfaces.IBaseAgent import BaseAgent
 
 
@@ -100,53 +98,44 @@ class DQNAgent(BaseAgent):
         action = self.model_predict(state, self.model)[0].numpy().tolist()[0]
         return action
 
-    def get_targets(self, state, action, reward, done, new_states):
-        """
-        Get targets for gradient update.
+    @tf.function
+    def update_gradient(self, states, actions, reward, done, new_states):
+        """Update main q network by experience replay method.
+
         Args:
-            state: size = (batch size * self.input_shape)
-            action: size =  buffer batch size
-            reward: size =  buffer batch size
-            done: size =  buffer batch size
-            new_states: size = (total buffer batch size, *self.input_shape)
+            states (tf.float32): Batch of states.
+            actions (tf.int32): Batch of actions.
+            reward (tf.float32): Batch of rewards.
+            done (tf.bool): Batch or terminal status.
+            new_states (tf.float32): Batch of next states.
+
         Returns:
-            Target values: size = (total buffer batch size, *self.input_shape)
+            loss (tf.float32): Huber loss of temporal difference.
         """
-        q_states = self.model_predict(state, self.model)[1]
-
-        new_state_values = tf.reduce_max(
-            self.model_predict(new_states, self.target_model)[1], axis=1
-        )
-
-        new_state_values = tf.where(
-            tf.cast(done, tf.bool),
-            tf.constant(0, new_state_values.dtype),
-            new_state_values,
-        )
-
-        target_values = tf.identity(q_states)
-
-        target_value_update = \
-            new_state_values * self.gamma + tf.cast(reward, tf.float32)
-
-        indices = self.get_action_indices(self.batch_indices, action)
-        target_values = tf.tensor_scatter_nd_update(
-            target_values, indices, target_value_update
-        )
-        return target_values
-
-    def update_gradients(self, x, y):
-        """
-        Train on a given batch.
-        Args:
-            x: States tensor
-            y: Targets tensor
-        """
+        reward = tf.cast(reward, tf.float32)
         with tf.GradientTape() as tape:
-            y_pred = self.model_predict(x, self.model)[1]
-            loss = MSE(y, y_pred)
-        self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
-        self.train_loss(loss)
+            next_state_q = self.target_model(new_states)
+            next_state_max_q = tf.math.reduce_max(next_state_q, axis=1)
+
+            q_target = reward + self.gamma * next_state_max_q * (1.0 - tf.cast(done, tf.float32))
+
+            q_value = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0), axis=1)
+            loss = self.loss(tf.stop_gradient(q_target), q_value)
+
+        gradients = tape.gradient(loss, self.model.trainable_variables)
+        clipped_gradients = [tf.clip_by_norm(grad, 10) for grad in gradients]
+        self.model.optimizer.apply_gradients(zip(clipped_gradients, self.model.trainable_variables))
+
+        self.train_loss.update_state(loss)
+        self.q_metric.update_state(q_value)
+
+    @tf.function
+    def update_target_network(self):
+        """Synchronize weights of target network by those of main network."""
+        main_vars = self.model.trainable_variables
+        target_vars = self.target_model.trainable_variables
+        for main_var, target_var in zip(main_vars, target_vars):
+            target_var.assign(main_var)
 
     def at_step_start(self):
         """
@@ -162,13 +151,15 @@ class DQNAgent(BaseAgent):
         """
         action = tf.numpy_function(self.get_action, [], tf.int64)
         tf.numpy_function(self.step_env, [action], [])
-        training_batch = tf.numpy_function(
-            self.buffer.get_sample,
-            [],
-            self.batch_dtypes,
-        )
-        targets = self.get_targets(*training_batch)
-        self.update_gradients(training_batch[0], targets)
+        if self.steps % self.update_frequency == 0:
+            training_batch = tf.numpy_function(
+                self.buffer.get_sample,
+                [],
+                self.batch_dtypes,
+            )
+            self.update_gradient(*training_batch)
+        # targets = self.get_targets(*training_batch)
+        # self.update_gradients(training_batch[0], targets)
 
     def at_step_end(self):
         self.sync_target_model()
@@ -185,7 +176,7 @@ class DQNAgent(BaseAgent):
             max_steps: Maximum number of steps, if reached the training will stop.
         """
         self.init_training(target_reward, max_steps)
-        # 1 loop = 1 step in env
+
         while True:
             self.check_episodes()
             if self.check_finish_training():

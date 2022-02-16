@@ -34,7 +34,7 @@ class BaseAgent(ABC):
             early_stop_patience=3,
             divergence_monitoring_steps=None,
             quiet=False,
-            epsilon=0.1
+            update_frequency=4,
     ):
         self.env = env
         self.model = model
@@ -65,6 +65,8 @@ class BaseAgent(ABC):
         self.last_reset_step = 0
         self.terminal_episodes = 0
 
+        self.epsilon = 0
+
         self.training_start_time = None
         self.last_reset_time = None
         self.frame_speed = 0
@@ -75,9 +77,12 @@ class BaseAgent(ABC):
         self.batch_size = self.buffer.batch_size
 
         self.reset_env()
-        self.train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
 
-        self.epsilon = epsilon
+        self.loss = tf.keras.losses.Huber()
+        self.train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+        self.q_metric = tf.keras.metrics.Mean(name="Q_value")
+
+        self.update_frequency = update_frequency
 
         self.model_path = model_path
         self.log_history = log_history
@@ -197,6 +202,7 @@ class BaseAgent(ABC):
             tf.summary.scalar('mean reward', self.mean_reward, step=self.steps)
             tf.summary.scalar('loss', self.train_loss.result(), step=self.steps)
             tf.summary.scalar('epsilon', self.epsilon, step=self.steps)
+            tf.summary.scalar('q_value', self.q_metric, step=self.steps)
 
     def check_episodes(self):
         """
@@ -207,6 +213,7 @@ class BaseAgent(ABC):
                 self.update_history()
                 self.record_tensorboard()
             self.train_loss.reset_states()
+            self.q_metric.reset_states()
             self.check_training_state()
             self.last_reset_time = perf_counter()
             self.display_learning_state()
