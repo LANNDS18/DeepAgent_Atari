@@ -1,5 +1,5 @@
 from tensorflow.keras.initializers import VarianceScaling
-from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input
+from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Lambda
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
@@ -15,7 +15,7 @@ def build_dqn_network(n_actions, learning_rate=0.00001, input_shape=(84, 84), fr
         A compiled Keras model
     """
     model_input = Input(shape=(input_shape[0], input_shape[1], frame_stack))
-    x = model_input  # normalize by 255
+    x = Lambda(lambda p: p / 255.0)(model_input)
     x = Conv2D(32, (8, 8), strides=4, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
         x)
     x = Conv2D(64, (4, 4), strides=2, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(

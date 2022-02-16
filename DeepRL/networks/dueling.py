@@ -15,8 +15,8 @@ def build_dueling_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)
     Returns:
         A compiled Keras model
     """
-    input = Input(shape=(input_shape[0], input_shape[1], frame_stack))
-    x = input  # normalize by 255
+    model_input = Input(shape=(input_shape[0], input_shape[1], frame_stack))
+    x = Lambda(lambda p: p / 255.0)(model_input)
     x = Conv2D(32, (8, 8), strides=4, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
         x)
     x = Conv2D(64, (4, 4), strides=2, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
