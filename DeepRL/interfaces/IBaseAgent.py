@@ -278,6 +278,7 @@ class BaseAgent(ABC):
         Load previous training session metadata and update agent metrics to go from there.
         """
         if Path(self.history_dict_path).is_file():
+            self.model.load_weights(self.model_path)
             previous_history = pd.read_json(self.history_dict_path).to_dict()
             self.mean_reward = previous_history['mean_reward'][0]
             self.best_reward = previous_history['best_reward'][0]
