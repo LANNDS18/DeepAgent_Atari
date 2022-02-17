@@ -36,7 +36,7 @@ class D3NPERAgent(DoubleDQNAgent):
             y_pred = self.model_predict(x, self.model)[1]
             loss = MSE(y, y_pred)
         self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
-        self.train_loss(loss)
+        self.loss_metric(loss)
         self.tds_error = tf.abs(y[:, action] - y_pred[:, action])
 
     @tf.function

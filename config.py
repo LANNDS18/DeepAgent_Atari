@@ -1,7 +1,7 @@
 """The parameter for training models"""
 
 '''Env Parameters'''
-ENV_NAME = 'DemonAttack-v0'
+ENV_NAME = 'DemonAttackNoFrameskip-v0'
 IMAGE_SHAPE = (84, 84)
 FRAME_STACK = 4
 
