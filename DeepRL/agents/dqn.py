@@ -173,11 +173,8 @@ class DQNAgent(BaseAgent):
         action = tf.numpy_function(self.get_action, [], tf.int64)
         tf.numpy_function(self.step_env, [action], [])
         if self.steps % self.update_frequency == 0:
-            training_batch = tf.numpy_function(
-                self.buffer.get_sample,
-                [],
-                self.batch_dtypes,
-            )
+            batch_id = self.buffer.get_sample_indices()
+            training_batch = self.buffer.get_sample(batch_id)
             targets = self.get_targets(*training_batch)
             self.update_gradients(training_batch[0], targets)
 

@@ -1,46 +1,54 @@
 from collections import deque
-from DeepRL.interfaces.IBaseBuffer import IBaseBuffer
-import random
+from DeepRL.interfaces.IBaseBuffer import IBaseBuffer, Transition
+
+import tensorflow as tf
 import numpy as np
 
 
 class ExperienceReplay(IBaseBuffer):
     """
-    deque-based replay buffer that holds state transitions
+    This class manages memory of agent.
     """
 
     def __init__(self, size, **kwargs):
-        """
-        Initialize replay buffer.
-        Args:
-            size: Buffer maximum size.
-            **kwargs: kwargs passed to BaseBuffer.
-        """
-        super(ExperienceReplay, self).__init__(size, **kwargs)
-        self.main_buffer = deque(maxlen=size)
-        self.temp_buffer = []
-
-    def append(self, *args):
-        """
-        Append experience and auto-allocate to temp buffer / main buffer(self)
-        Args:
-            *args: Items to store
-        """
-        self.main_buffer.append(args)
-        self.current_size = len(self.main_buffer)
-
-    def get_sample(self):
-        """
-        Sample from stored experience.
-        Returns:
-            Same number of args passed to append, having self.batch_size as
-            first shape.
-        """
-        memories = random.sample(self.main_buffer, self.batch_size)
-        return [np.array(item) for item in zip(*memories)]
+        super().__init__(size, **kwargs)
+        self.size = int(size)
+        self._buffer = deque(maxlen=size)
+        self.current_size = 0
 
     def __len__(self):
-        return self.current_size
+        return len(self._buffer)
+
+    def __getitem__(self, i):
+        return self._buffer[i]
+
+    def __repr__(self):
+        return self.__class__.__name__ + "({})".format(self.size)
+
+    def append(self, *args):
+        transition = Transition(*args)
+        self._buffer.append(transition)
+        self.current_size = len(self._buffer)
+
+    def get_sample_indices(self):
+        indices = []
+        while len(indices) < self.batch_size:
+            index = np.random.randint(low=0, high=self.size, dtype=np.int32)
+            indices.append(index)
+        return indices
+
+    def get_sample(self, indices):
+        states, actions, rewards, dones, new_states = [], [], [], [], []
+
+        for index in indices:
+            item = self._buffer[index]
+            states.append(tf.constant(item.state, tf.float32))
+            actions.append(tf.constant(item.action, tf.int32))
+            rewards.append(tf.constant(item.reward, tf.float32))
+            dones.append(tf.constant(item.done, tf.bool))
+            new_states.append(tf.constant(item.new_state, tf.float32))
+
+        return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones, axis=0), tf.stack(new_states, axis=0)
 
 
 class PrioritizedExperienceReplay(IBaseBuffer):

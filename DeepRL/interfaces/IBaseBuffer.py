@@ -1,3 +1,8 @@
+from collections import namedtuple
+
+Transition = namedtuple("Transition", ("state", "action", "reward", "done", "new_state"))
+
+
 class IBaseBuffer:
     """
     Base class for replay buffer.
@@ -13,12 +18,12 @@ class IBaseBuffer:
             batch_size: Size of the batch that should be used in get_sample() implementation.
         """
         assert (
-            initial_size is None or initial_size > 0
+                initial_size is None or initial_size > 0
         ), f'Buffer initial size should be > 0, got {initial_size}'
         assert size > 0, f'Buffer size should be > 0,  got {size}'
         assert batch_size > 0, f'Buffer batch size should be > 0, got {batch_size}'
         assert (
-            batch_size <= size
+                batch_size <= size
         ), f'Buffer batch size `{batch_size}` should be <= size `{size}`'
         if initial_size:
             assert size >= initial_size, 'Buffer initial size exceeds max size'
@@ -37,13 +42,24 @@ class IBaseBuffer:
             f'append() should be implemented by {self.__class__.__name__} subclasses'
         )
 
-    def get_sample(self):
+    def get_sample_indices(self):
+        """
+        Random sample indices from stored experience.
+        :return:
+                List of batch_size indices.
+        """
+        raise NotImplementedError(
+            f'get_sample_indices() should be implemented by {self.__class__.__name__} subclasses'
+        )
+
+    def get_sample(self, indices):
         """
         Sample from stored experience.
+          Args:
+            *indices: The indices of getting samo
         Returns:
             Sample as numpy array.
         """
         raise NotImplementedError(
             f'get_sample() should be implemented by {self.__class__.__name__} subclasses'
         )
-
