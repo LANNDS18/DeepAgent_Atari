@@ -12,6 +12,8 @@ from collections import deque
 from datetime import timedelta, datetime
 from time import perf_counter, sleep
 from termcolor import colored
+from tensorflow.keras.optimizers import Adam
+
 from DeepRL.utils.common import write_from_dict
 
 
@@ -27,62 +29,62 @@ class BaseAgent(ABC):
             buffer,
             mean_reward_step=100,
             gamma=0.99,
+            frame_stack=4,
+            optimizer=None,
+            model_update_freq=4,
+            target_sync_freq=1000,
+            model_save_interval=2000,
             model_path=None,
             log_history=False,
-            plateau_reduce_factor=0.9,
-            plateau_reduce_patience=10,
-            early_stop_patience=3,
-            divergence_monitoring_steps=None,
             quiet=False,
-            update_frequency=4,
     ):
+        self.game_id = env.id
         self.env = env
-        self.model = model
-        self.buffer = buffer
-
-        self.total_rewards = deque(maxlen=mean_reward_step)
-
-        self.gamma = gamma
-
-        self.plateau_reduce_factor = plateau_reduce_factor
-        self.plateau_reduce_patience = plateau_reduce_patience
-        self.early_stop_patience = early_stop_patience
-        self.divergence_monitoring_steps = divergence_monitoring_steps
-        self.quiet = quiet
-
-        self.state = self.env.reset()
         self.n_actions = self.env.action_space.n
+        self.frame_stack = frame_stack
         self.input_shape = self.env.observation_space.shape
 
-        self.best_reward = 0
+        self.buffer = buffer
+        self.mean_reward_buffer = deque(maxlen=mean_reward_step)
+
+        self.gamma = gamma
+        self.epsilon = 0
+
+        self.state = self.env.reset()
+        self.done = False
+
+        self.best_mean_reward = 0
         self.mean_reward = 0
         self.episode_reward = 0
-        self.plateau_count = 0
-        self.early_stop_count = 0
 
-        self.steps = 0
+        self.total_step = 0
+        self.episode = 0
         self.max_steps = None
         self.last_reset_step = 0
-        self.terminal_episodes = 0
-
-        self.epsilon = 0
 
         self.training_start_time = None
         self.last_reset_time = None
         self.frame_speed = 0
 
-        self.done = False
-        self.target_reward = None
+        self.model_save_interval = model_save_interval
+        self.model_update_freq = model_update_freq
+        self.target_sync_freq = target_sync_freq
 
-        self.batch_size = self.buffer.batch_size
+        self.model = model(n_actions=self.n_actions,
+                           frame_stack=frame_stack,
+                           input_shape=self.input_shape)
 
-        self.reset_env()
+        self.target_model = model(n_actions=self.n_actions,
+                                  frame_stack=self.frame_stack,
+                                  input_shape=self.input_shape)
+
+        self.optimizer = Adam(learning_rate=1e-4, epsilon=1e-6) if optimizer is None else optimizer
 
         self.loss = tf.keras.losses.Huber()
-        self.train_loss = tf.keras.metrics.Mean('train_loss', dtype=tf.float32)
+        self.loss_metric = tf.keras.metrics.Mean('loss_metric', dtype=tf.float32)
         self.q_metric = tf.keras.metrics.Mean(name="Q_value")
 
-        self.update_frequency = update_frequency
+        self.quiet = quiet
 
         self.model_path = model_path
         self.log_history = log_history
@@ -90,6 +92,8 @@ class BaseAgent(ABC):
         if self.model_path and self.log_history:
             self.history_dict_path = self.model_path + 'history_check_point.json'
             self.train_log_dir = self.model_path + '/log/' + datetime.now().strftime("%Y%m%d-%H%M%S")
+
+        self.reset_env()
 
     def display_message(self, *args, **kwargs):
         """
@@ -102,7 +106,31 @@ class BaseAgent(ABC):
             print(*args, **kwargs)
 
     def reset_env(self):
+        """
+        Reset env with no return
+        """
         self.state = self.env.reset()
+
+    def save_model(self, model):
+        """
+        Save model weight to checkpoint
+        Args:
+             model:
+                keras model
+        """
+        if self.model_path:
+            model.save_weights(self.model_path)
+
+    def load_model(self, model):
+        """
+        Load model weight from model_path
+        Args:
+            model: the initial model
+        """
+        if self.model_path:
+            check_point = tf.train.latest_checkpoint(self.model_path)
+            model.load_weights(check_point)
+        return model
 
     def display_learning_state(self):
         """
@@ -110,20 +138,20 @@ class BaseAgent(ABC):
         """
         display_titles = (
             'time',
-            'steps',
-            'terminal_episodes',
+            'total_step',
+            'episode',
             'speed',
             'mean reward',
-            'best reward',
+            'best moving avg (100) reward',
         )
 
         display_values = (
             timedelta(seconds=perf_counter() - self.training_start_time),
-            self.steps,
-            self.terminal_episodes,
-            f'{round(self.frame_speed)} steps/s',
+            self.total_step,
+            self.episode,
+            f'{round(self.frame_speed)} step/s',
             self.mean_reward,
-            self.best_reward,
+            self.best_mean_reward,
         )
         display = (
             f'{title}: {value}'
@@ -131,46 +159,35 @@ class BaseAgent(ABC):
         )
         self.display_message(', '.join(display))
 
-    def check_training_state(self):
+    def update_training_parameters(self):
         """
         Update progress metrics which consist of last reset step and time used
         for calculation of fps, and update mean and best reward. The model is
         saved if there is a checkpoint path specified.
         """
-        if self.episode_reward > self.best_reward:
-            self.plateau_count = 0
-            self.early_stop_count = 0
-            self.display_message(
-                f'Best reward updated: {colored(str(self.best_reward), "red")} -> '
-                f'{colored(str(self.episode_reward), "green")}'
-            )
-            self.best_reward = max(self.episode_reward, self.best_reward)
-            if self.model_path:
-                self.model.save_weights(self.model_path)
+        self.mean_reward_buffer.append(self.episode_reward)
+        self.mean_reward = np.around(
+            np.mean(self.mean_reward_buffer), 5
+        )
 
-        if (
-                self.divergence_monitoring_steps
-                and self.steps >= self.divergence_monitoring_steps
-                and self.mean_reward <= self.best_reward
-        ):
-            self.plateau_count += 1
-
-        if self.plateau_count >= self.plateau_reduce_patience:
-            current_lr = self.model.optimizer.learning_rate
-            new_lr = current_lr * self.plateau_reduce_factor
+        if self.mean_reward > self.best_mean_reward:
             self.display_message(
-                f'Learning rate reduced {current_lr.numpy()} ' f'-> {new_lr.numpy()}'
+                f'Best Moving Average Reward Updated: {colored(str(self.best_mean_reward), "red")} -> '
+                f'{colored(str(self.mean_reward), "green")}'
             )
-            current_lr.assign(new_lr)
-            self.plateau_count = 0
-            self.early_stop_count += 1
-        self.frame_speed = (self.steps - self.last_reset_step) / (
+            self.best_mean_reward = self.mean_reward
+            self.save_model(self.model)
+
+        self.state = self.env.reset()
+        self.episode_reward = 0.0
+        self.done = False
+        self.episode += 1
+
+        self.frame_speed = (self.total_step - self.last_reset_step) / (
                 perf_counter() - self.last_reset_time
         )
-        self.last_reset_step = self.steps
-        self.mean_reward = np.around(
-            np.mean(self.total_rewards), 5
-        )
+        self.last_reset_time = perf_counter()
+        self.last_reset_step = self.total_step
 
     def fill_buffer(self):
         """
@@ -178,7 +195,7 @@ class BaseAgent(ABC):
         """
         total_size = self.buffer.initial_size
         buffer = self.buffer
-        state = self.state
+        state = self.env.reset()
         while buffer.current_size < buffer.initial_size:
             action = self.env.action_space.sample()
             new_state, reward, done, _ = self.env.step(action)
@@ -192,17 +209,21 @@ class BaseAgent(ABC):
                 f'{filled}/{total_size}',
                 end='',
             )
+        self.state = state
         self.display_message('')
         self.reset_env()
 
     def record_tensorboard(self):
         train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
         with train_summary_writer.as_default():
-            tf.summary.scalar('mean reward', self.mean_reward, step=self.steps)
-            tf.summary.scalar('q_value', self.q_metric.result(), step=self.steps)
-            tf.summary.scalar('episode reward', self.episode_reward, step=self.steps)
-            tf.summary.scalar('loss', self.train_loss.result(), step=self.steps)
-            tf.summary.scalar('epsilon', self.epsilon, step=self.steps)
+            tf.summary.scalar('Moving Average Reward (100 Episode)', self.mean_reward, step=self.episode)
+            tf.summary.scalar('Average Q', self.q_metric.result(), step=self.episode)
+            tf.summary.scalar('Episode Reward', self.episode_reward, step=self.episode)
+            tf.summary.scalar('Loss', self.loss_metric.result(), step=self.episode)
+            tf.summary.scalar('Epsilon', self.epsilon, step=self.episode)
+            tf.summary.scalar("Total Frames", self.total_step, step=self.episode)
+        self.loss_metric.reset_states()
+        self.q_metric.reset_states()
 
     def check_episodes(self):
         """
@@ -212,48 +233,40 @@ class BaseAgent(ABC):
             if self.model_path and self.log_history:
                 self.update_history()
                 self.record_tensorboard()
-            self.train_loss.reset_states()
-            self.q_metric.reset_states()
-            self.check_training_state()
-            self.last_reset_time = perf_counter()
+            self.update_training_parameters()
             self.display_learning_state()
-            self.done = False
-            self.episode_reward = 0
 
     def check_finish_training(self):
         """
-        Check whether a target reward or maximum number of steps is reached.
+        Check whether a target reward or maximum number of total_step is reached.
         Returns:
             bool
         """
-        if self.early_stop_count >= self.early_stop_patience:
-            self.display_message(f'Early stopping')
-            return True
-        if self.target_reward and self.mean_reward >= self.target_reward:
-            self.display_message(f'Mean Reward achieved in {self.steps} steps')
-            return True
-        if self.max_steps and self.steps >= self.max_steps:
-            self.display_message(f'Maximum steps exceeded')
+        if self.max_steps and self.total_step >= self.max_steps:
+            self.display_message(f'Maximum total_step exceeded')
             return True
         return False
 
     def update_history(self):
         """
-        Write 1 episode stats to .parquet history checkpoint.
+        Write 1 episode stats to checkpoint and write model when it crosses interval.
         """
         data = {
             'mean_reward': [self.mean_reward],
-            'best_reward': [self.best_reward],
+            'best_mean_reward': [self.best_mean_reward],
             'episode_reward': [self.episode_reward],
-            'step': [self.steps],
+            'step': [self.total_step],
             'time': [perf_counter() - self.training_start_time],
-            'terminal_episodes': [self.terminal_episodes]
+            'episode': [self.episode]
         }
         write_from_dict(data, path=self.history_dict_path)
 
+        if self.episode % self.model_update_freq == 0:
+            self.save_model(self.model)
+
     def step_env(self, action):
         """
-        Step environment in self.env_name, update metrics (if any done terminal_episodes)
+        Step environment in self.env_name, update metrics (if any done episode)
             and return / store results.
         Args:
             action: An iterable of action to execute by environments.
@@ -267,10 +280,10 @@ class BaseAgent(ABC):
         observation = state, action, reward, done, new_state
         self.buffer.append(*observation)
         if done:
-            self.total_rewards.append(self.episode_reward)
-            self.terminal_episodes += 1
+            self.mean_reward_buffer.append(self.episode_reward)
+            self.episode += 1
             self.state = self.env.reset()
-        self.steps += 1
+        self.total_step += 1
         return observations
 
     def load_history_from_path(self):
@@ -278,31 +291,35 @@ class BaseAgent(ABC):
         Load previous training session metadata and update agent metrics to go from there.
         """
         if Path(self.history_dict_path).is_file():
-            self.model.load_weights(self.model_path)
+            # Load model from checkpoint
+            self.model = self.load_model(self.model_path)
+            # Load training data from json
             previous_history = pd.read_json(self.history_dict_path).to_dict()
             self.mean_reward = previous_history['mean_reward'][0]
-            self.best_reward = previous_history['best_reward'][0]
+            self.best_mean_reward = previous_history['best_mean_reward'][0]
             history_start_steps = previous_history['step'][0]
             history_start_time = previous_history['time'][0]
             self.training_start_time = perf_counter() - history_start_time
-            self.last_reset_step = self.steps = int(history_start_steps)
-            self.total_rewards.append(previous_history['episode_reward'][0])
-            self.terminal_episodes = previous_history['terminal_episodes'][0]
+            self.last_reset_step = self.total_step = int(history_start_steps)
+            self.mean_reward_buffer.append(previous_history['episode_reward'][0])
+            self.episode = previous_history['episode'][0]
 
-    def init_training(self, target_reward, max_steps):
+    def init_training(self, max_steps):
         """
         Initialize training start time & model (self.model / self.target_model)
         Args:
-            target_reward: Total reward per game value that whenever achieved,
-                the training will stop.
-            max_steps: Maximum time steps, if exceeded, the training will stop.
+            max_steps: Maximum time total_step, if exceeded, the training will stop.
         """
         if self.model_path and self.log_history:
             self.load_history_from_path()
-        self.target_reward = target_reward
         self.max_steps = max_steps
         self.training_start_time = perf_counter()
         self.last_reset_time = perf_counter()
+        self.total_step = 0
+        self.episode = 0
+        self.state = self.env.reset()
+        self.episode_reward = 0.0
+        self.done = False
 
     def train_step(self):
         """
@@ -313,42 +330,27 @@ class BaseAgent(ABC):
             f'train_step() should be implemented by {self.__class__.__name__} subclasses'
         )
 
-    def model_predict(self, x_pred, model, training=True):
-        """
-        Get single model outputs.
-        Args:
-            x_pred: Inputs as tensors / numpy arrays that are expected
-                by the given model.
-            model: A tf.keras.Model
-            training: whether training or not
-        Returns:
-            q value list for single model
-        """
-        if isinstance(model, tf.keras.models.Model):
-            return model(x_pred, training=training)
-        else:
-            raise AttributeError('model should be a tf.keras.Model')
-
     def learn(
             self,
-            target_reward=None,
-            max_steps=None,
+            max_steps,
     ):
         """
         Common training loop shared by subclasses, monitors training status
-        and progress, performs all training steps, updates metrics, and logs progress.
+        and progress, performs all training total_step, updates metrics, and logs progress.
         Args:
-            target_reward: Target reward, if achieved, the training will stop
-            max_steps: Maximum number of steps, if reached the training will stop.
+             max_steps: Maximum number of total_step, if reached the training will stop.
         """
-        self.init_training(target_reward, max_steps)
+        self.init_training(max_steps)
         while True:
             self.check_episodes()
             if self.check_finish_training():
                 break
-            self.at_step_start()
-            self.train_step()
-            self.at_step_end()
+            while not self.done:
+                self.at_step_start()
+                self.train_step()
+                self.at_step_end()
+            raise NotImplementedError(f'The train step of learn() should '
+                                      f'be implemented by {self.__class__.__name__} subclasses')
 
     def at_step_start(self):
         pass
@@ -363,7 +365,6 @@ class BaseAgent(ABC):
             frame_dir=None,
             frame_delay=0.0,
             max_steps=None,
-            action_idx=0,
             frame_frequency=1,
     ):
         """
@@ -373,8 +374,7 @@ class BaseAgent(ABC):
             render: If True, the game will be displayed.
             frame_dir: Path to directory to save game frames.
             frame_delay: Delay between rendered frames.
-            max_steps: Maximum environment steps.
-            action_idx: Index of action output by self.model
+            max_steps: Maximum environment total_step.
             frame_frequency: If frame_dir is specified, save frames every n frames.
         """
         self.reset_env()
@@ -388,7 +388,7 @@ class BaseAgent(ABC):
             os.makedirs(dir_name or '.', exist_ok=True)
         while True:
             if max_steps and steps >= max_steps:
-                self.display_message(f'Maximum steps {max_steps} exceeded')
+                self.display_message(f'Maximum total_step {max_steps} exceeded')
                 break
             if render:
                 env_in_use.render()
@@ -398,9 +398,7 @@ class BaseAgent(ABC):
                     env_in_use.render(mode='rgb_array'), cv2.COLOR_BGR2RGB
                 )
                 cv2.imwrite(os.path.join(frame_dir, f'{steps:05d}.jpg'), frame)
-            action = self.model_predict(
-                self.state, self.model, False
-            )[action_idx].numpy()
+            action = np.argmax(self.model(self.state))
             self.state, reward, done, _ = env_in_use.step(action)
             total_reward += reward
             if done:

@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.losses import MSE
 
 from DeepRL.interfaces.IBaseAgent import BaseAgent
 
@@ -15,7 +14,6 @@ class DQNAgent(BaseAgent):
             epsilon_start=1.0,
             epsilon_end=0.02,
             epsilon_decay_steps=150000,
-            target_sync_steps=1000,
             **kwargs,
     ):
         """
@@ -28,93 +26,46 @@ class DQNAgent(BaseAgent):
             epsilon_start: Starting epsilon value which is used to control random exploration.
                 It should be decremented and adjusted according to implementation needs.
             epsilon_end: End epsilon value which is the minimum exploration rate.
-            epsilon_decay_steps: Number of steps for epsilon to reach `epsilon_end`
+            epsilon_decay_steps: Number of total_step for epsilon to reach `epsilon_end`
                 from `epsilon_start`,
             target_sync_steps: Steps to sync target model after each.
             **kwargs: kwargs passed to super classes.
         """
         super(DQNAgent, self).__init__(env, model, buffer, **kwargs)
-        self.target_model = tf.keras.models.clone_model(self.model)
-        self.target_model.set_weights(self.model.get_weights())
-        self.epsilon_start = self.epsilon = epsilon_start
+        self.epsilon_start = epsilon_start
+        self.epsilon = epsilon_start
         self.epsilon_end = epsilon_end
         self.epsilon_decay_steps = epsilon_decay_steps
-        self.target_sync_steps = target_sync_steps
-        self.batch_indices = tf.range(self.batch_size, dtype=tf.int64)[:, tf.newaxis]
-        self.batch_dtypes = ['uint8', 'int64', 'float64', 'bool', 'uint8']
-
-    @staticmethod
-    def get_action_indices(batch_indices, actions):
-        """
-        Get indices that will be passed to tf.gather_nd()
-        Args:
-            batch_indices: tf.range() result of the same shape as the batch size.
-            actions: Action tensor of same shape as the batch size.
-        Returns:
-            Indices as a tensor.
-        """
-        return tf.concat((batch_indices, tf.cast(actions[:, tf.newaxis], tf.int64)), -1)
-
-    @tf.function
-    def model_predict(self, inputs, model, training=True):
-        """
-        Get model outputs
-        Args:
-            inputs: Inputs as tensors / numpy arrays that are expected
-                by the given model.
-            model: A tf.keras.Model
-            training: Using for model to determine whether training or not
-        Returns:
-            index of max q-value, q-value list
-        """
-        q_values = super(DQNAgent, self).model_predict(inputs, model, training=training)
-        return tf.argmax(q_values, axis=1), q_values
 
     def update_epsilon(self):
         """
         Decrement epsilon which aims to gradually reduce randomization.
         """
         self.epsilon = max(
-            self.epsilon_end, self.epsilon_start - self.steps / self.epsilon_decay_steps
+            self.epsilon_end, self.epsilon_start - self.total_step / self.epsilon_decay_steps
         )
 
     @tf.function
-    def sync_target_model(self):
-        """
-        Sync target model weights with eval model every target_sync_steps
-        """
-        if self.steps % self.target_sync_steps == 0:
-            self.target_model.set_weights(self.model.get_weights())
+    def get_action(self, state, epsilon):
+        """Get action by ε-greedy method.
 
-    def get_action(self):
-        """
-        Generate action following a policy.
+        Args:
+            state (np.uint8): recent self.history_length frames. (Default: (84, 84, 4))
+            epsilon (int): Exploration rate for deciding random or optimal action.
 
         Returns:
-            A random action or Q argmax.
+            action (tf.int32): Action index
         """
-        if np.random.random() < self.epsilon:
-            return np.random.randint(0, self.n_actions)
-        state = tf.expand_dims(self.state, axis=0)
-        action = self.model_predict(state, self.model)[0].numpy().tolist()[0]
+        recent_state = tf.expand_dims(state, axis=0)
+        if tf.random.uniform((), minval=0, maxval=1, dtype=tf.float32) < epsilon:
+            action = tf.random.uniform((), minval=0, maxval=self.env.action_space.n, dtype=tf.int32)
+        else:
+            q_value = self.model(tf.cast(recent_state, tf.float32))
+            action = tf.cast(tf.squeeze(tf.math.argmax(q_value, axis=1)), dtype=tf.int32)
         return action
 
     @tf.function
-    def update_gradients(self, x, y):
-        """
-        Train on a given batch.
-        Args:
-            x: States tensor
-            y: Targets tensor
-        """
-        with tf.GradientTape() as tape:
-            y_pred = self.model_predict(x, self.model)[1]
-            loss = MSE(y, y_pred)
-        self.model.optimizer.minimize(loss, self.model.trainable_variables, tape=tape)
-        self.train_loss(loss)
-
-    @tf.function
-    def update_target_network(self):
+    def sync_target_model(self):
         """Synchronize weights of target network by those of main network."""
         main_vars = self.model.trainable_variables
         target_vars = self.target_model.trainable_variables
@@ -123,81 +74,84 @@ class DQNAgent(BaseAgent):
 
     def at_step_start(self):
         """
-        Execute steps that will run before self.train_step() which decays epsilon.
+        Execute total_step that will run before self.train_step() which decays epsilon.
         """
         self.update_epsilon()
 
-    def get_targets(self, state, action, reward, done, new_states):
-        """
-        Get targets for gradient update.
-        Args:
-            state: size = batch size * self.input_shape
-            action: size =  buffer batch size
-            reward: size =  buffer batch size
-            done: size =  buffer batch size
-            new_states: size = total buffer batch size, *self.input_shape
-        Returns:
-            Target values: size = Total buffer batch size, self.n_actions)
-        """
-
-        q_states = self.model_predict(state, self.model)[1]
-
-        new_state_values = tf.reduce_max(
-            self.model_predict(new_states, self.target_model)[1], axis=1
-        )
-
-        new_state_values = tf.where(
-            tf.cast(done, tf.bool),
-            tf.constant(0, new_state_values.dtype),
-            new_state_values,
-        )
-
-        target_values = tf.identity(q_states)
-
-        target_value_update = \
-            new_state_values * self.gamma + tf.cast(reward, tf.float32)
-
-        indices = self.get_action_indices(self.batch_indices, action)
-        target_values = tf.tensor_scatter_nd_update(
-            target_values, indices, target_value_update
-        )
-        self.q_metric.update_state(target_values)
-        return target_values
-
     @tf.function
+    def update_main_model(self, states, actions, rewards, dones, new_states):
+        """Update main q network by experience replay method.
+
+        Args:
+            states (tf.float32): Batch of states.
+            actions (tf.int32): Batch of actions.
+            rewards (tf.float32): Batch of rewards.
+            new_states (tf.float32): Batch of next states.
+            dones (tf.bool): Batch or terminal status.
+
+        Returns:
+            loss (tf.float32): Huber loss of temporal difference.
+        """
+
+        with tf.GradientTape() as tape:
+            next_state_q = self.target_model(new_states)
+            next_state_max_q = tf.math.reduce_max(next_state_q, axis=1)
+            expected_q = rewards + self.gamma * next_state_max_q * (
+                    1.0 - tf.cast(dones, tf.float32))
+            main_q = tf.reduce_sum(
+                self.model(states) * tf.one_hot(actions, self.env.action_space.n, 1.0, 0.0),
+                axis=1)
+            loss = self.loss(tf.stop_gradient(expected_q), main_q)
+
+        gradients = tape.gradient(loss, self.model.trainable_variables)
+        clipped_gradients = [tf.clip_by_norm(grad, 10) for grad in gradients]
+        self.optimizer.apply_gradients(zip(clipped_gradients, self.model.trainable_variables))
+        self.loss_metric.update_state(loss)
+        self.q_metric.update_state(main_q)
+
+        return loss
+
     def train_step(self):
         """
         Perform 1 step which controls action_selection, interaction with environments
         in self.env_name, batching and gradient updates.
         """
-        action = tf.numpy_function(self.get_action, [], tf.int64)
-        tf.numpy_function(self.step_env, [action], [])
-        if self.steps % self.update_frequency == 0:
-            batch_id = self.buffer.get_sample_indices()
-            training_batch = self.buffer.get_sample(batch_id)
-            targets = self.get_targets(*training_batch)
-            self.update_gradients(training_batch[0], targets)
+        action = self.get_action(tf.constant(self.state), tf.constant(self.epsilon, tf.float32))
+
+        next_state, reward, done, info = self.env.step(action)
+        self.buffer.append(self.state, action, reward, done, next_state)
+
+        self.episode_reward += reward
+        self.state = next_state
+        self.done = done
+
+        if self.total_step % self.model_update_freq == 0:
+            indices = self.buffer.get_sample_indices()
+            states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
+
+            self.update_main_model(states, actions, rewards,
+                                   dones, next_states)
 
     def at_step_end(self):
-        self.sync_target_model()
+        if self.total_step % self.target_sync_freq == 0:
+            self.sync_target_model()
+        self.total_step += 1
         self.env.render()
 
     def learn(
             self,
-            target_reward=None,
-            max_steps=None,
+            max_steps,
     ):
         """
         Args:
-            target_reward: Target reward, if achieved, the training will stop
-            max_steps: Maximum number of steps, if reached the training will stop.
+            max_steps: Maximum number of total_step, if reached the training will stop.
         """
-        self.init_training(target_reward, max_steps)
-
+        self.init_training(max_steps)
         while True:
             self.check_episodes()
             if self.check_finish_training():
                 break
-            self.at_step_start()
-            self.train_step()
-            self.at_step_end()
+            while not self.done:
+                self.at_step_start()
+                self.train_step()
+                self.at_step_end()

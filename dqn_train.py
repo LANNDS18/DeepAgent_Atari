@@ -1,4 +1,4 @@
-from DeepRL.networks.cnn import build_dqn_network
+from DeepRL.networks.cnn import DQNNetwork
 from DeepRL.utils.buffer import ExperienceReplay
 from DeepRL.utils.game import GameEnv
 from DeepRL.agents.dqn import DQNAgent
@@ -10,15 +10,11 @@ def train_dqn():
                    output_shape=IMAGE_SHAPE,
                    frame_stack=FRAME_STACK)
 
-    model = build_dqn_network(n_actions=game.action_space.n,
-                              input_shape=IMAGE_SHAPE,
-                              frame_stack=FRAME_STACK)
-
     buffer = ExperienceReplay(size=BUFFER_SIZE, batch_size=BATCH_SIZE)
 
     agent = DQNAgent(
         env=game,
-        model=model,
+        model=DQNNetwork,
         buffer=buffer,
         gamma=GAMMA,
         epsilon_start=EPSILON_START,
@@ -29,7 +25,7 @@ def train_dqn():
     )
 
     agent.fill_buffer()
-    agent.learn(max_steps=TRAINING_STEP, target_reward=TARGET_MEAN_REWARD)
+    agent.learn(max_steps=TRAINING_STEP)
 
 
 if __name__ == '__main__':

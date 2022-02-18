@@ -20,7 +20,6 @@ EPSILON_DECAY_STEPS = int(1e6)
 
 '''Learning Parameters'''
 TRAINING_STEP = int(1e7)
-TARGET_MEAN_REWARD = 2000
 
 '''Model Paths'''
 DQN_PATH = 'models/dqn/'
