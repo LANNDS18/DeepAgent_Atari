@@ -188,6 +188,7 @@ class GameEnv(gym.Wrapper):
 
     def __init__(self, env_name, output_shape=(84, 84), frame_stack=4):
         env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=(84, 84))
+        self.id = env_name
         self.env = env
         self.output_shape = output_shape
         self.real_score = 0

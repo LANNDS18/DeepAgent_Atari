@@ -1,33 +1,35 @@
-from tensorflow.keras.initializers import VarianceScaling
-from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Lambda
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+import tensorflow as tf
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Conv2D, Dense, Flatten, Lambda
 
 
-def build_dqn_network(n_actions, learning_rate=0.00001, input_shape=(84, 84), frame_stack=4):
-    """Builds a cnn networks as a Keras model
-    Arguments:
-        n_actions: Number of possible action the agent can take
-        learning_rate: Learning rate
-        input_shape: Shape of the preprocessed frame the model sees
-        frame_stack: length of frame stack
-    Returns:
-        A compiled Keras model
+class DQNNetwork(Model):
     """
-    model_input = Input(shape=(input_shape[0], input_shape[1], frame_stack))
-    x = Lambda(lambda p: p / 255.0)(model_input)
-    x = Conv2D(32, (8, 8), strides=4, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
-        x)
-    x = Conv2D(64, (4, 4), strides=2, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
-        x)
-    x = Conv2D(64, (3, 3), strides=1, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
-        x)
-    x = Flatten()(x)
-    x = Dense(512, kernel_initializer=VarianceScaling(scale=2.))(x)
-    out = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))(x)
+    Class for DQN model architecture.
+    """
 
-    model = Model(model_input, out)
-    model.compile(Adam(learning_rate=learning_rate))
-    model.summary()
+    def __init__(self, n_actions, frame_stack=4, input_shape=(84, 84)):
+        super(DQNNetwork, self).__init__()
+        self.normalize = Lambda(lambda x: x / 255.0)
+        self.conv1 = Conv2D(filters=32, kernel_size=8, strides=4,
+                            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0), activation="relu",
+                            input_shape=(None, input_shape[0], input_shape[1], frame_stack))
+        self.conv2 = Conv2D(filters=64, kernel_size=4, strides=2,
+                            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0), activation="relu")
+        self.conv3 = Conv2D(filters=64, kernel_size=3, strides=1,
+                            kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0), activation="relu")
+        self.flatten = Flatten()
+        self.dense1 = Dense(512, kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0), activation='relu')
+        self.dense2 = Dense(n_actions, kernel_initializer=tf.keras.initializers.VarianceScaling(scale=2.0),
+                            activation="linear")
 
-    return model
+    @tf.function
+    def call(self, x):
+        normalized = self.normalize(x)
+        l1 = self.conv1(normalized)
+        l2 = self.conv2(l1)
+        l3 = self.conv3(l2)
+        l4 = self.flatten(l3)
+        l5 = self.dense1(l4)
+        output = self.dense2(l5)
+        return output

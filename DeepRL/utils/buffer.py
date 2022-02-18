@@ -7,7 +7,7 @@ import numpy as np
 
 class ExperienceReplay(IBaseBuffer):
     """
-    This class manages memory of agent.
+    This class manages buffer of agent.
     """
 
     def __init__(self, size, **kwargs):
@@ -78,6 +78,7 @@ class PrioritizedExperienceReplay(IBaseBuffer):
         Args:
             *args: Items to store
         """
+        raise NotImplementedError()
         if len(self.main_buffer) < self.size:
             self.main_buffer.append(args)
             self.priorities = np.append(
@@ -93,12 +94,13 @@ class PrioritizedExperienceReplay(IBaseBuffer):
 
         self.current_size = len(self.main_buffer)
 
-    def get_sample(self):
+    def get_sample(self, indices):
         """
         Sample from stored experience based on priorities.
         Returns:
             Same number of args passed to append, having self.batch_size as first shape.
         """
+        raise NotImplementedError()
         probs = self.priorities ** self.prob_alpha
         probs /= probs.sum()
         self.index_buffer = np.random.choice(len(self.main_buffer),
@@ -115,6 +117,7 @@ class PrioritizedExperienceReplay(IBaseBuffer):
         Args:
             abs_errors: abs of Y and Y_Predict
         """
+        raise NotImplementedError()
         self.priorities[self.index_buffer] = abs_errors + self.epsilon
 
     def __len__(self):
