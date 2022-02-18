@@ -39,13 +39,13 @@ def test_loading():
     if Path(my_file).is_file():
         previous_history = pd.read_json(my_file)
         mean_reward = previous_history['mean_reward'][0]
-        best_reward = previous_history['best_reward'][0]
+        best_reward = previous_history['best_mean_reward'][0]
         history_start_steps = previous_history['step'][0]
         history_start_time = previous_history['time'][0]
         training_start_time = perf_counter() - history_start_time
         last_reset_step = int(history_start_steps)
         total_rewards.append(previous_history['episode_reward'][0])
-        terminal_episodes = previous_history['terminal_episodes'][0]
+        terminal_episodes = previous_history['episode'][0]
         print(mean_reward, best_reward, training_start_time, last_reset_step, terminal_episodes)
 
 
