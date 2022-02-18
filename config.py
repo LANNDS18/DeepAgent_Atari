@@ -6,11 +6,11 @@ IMAGE_SHAPE = (84, 84)
 FRAME_STACK = 4
 
 '''Network Parameters '''
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 3e-4
 
 """Buffer Parameters"""
-BUFFER_SIZE = 20000
-BATCH_SIZE = 64
+BUFFER_SIZE = 80000
+BATCH_SIZE = 32
 
 '''Agent Parameters'''
 GAMMA = 0.99

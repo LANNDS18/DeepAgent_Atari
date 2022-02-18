@@ -17,24 +17,24 @@ def build_dueling_network(n_actions, learning_rate=0.00001, input_shape=(84, 84)
     """
     model_input = Input(shape=(input_shape[0], input_shape[1], frame_stack))
     x = Lambda(lambda p: p / 255.0)(model_input)
-    x = Conv2D(32, (8, 8), strides=4, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
-        x)
-    x = Conv2D(64, (4, 4), strides=2, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
-        x)
-    x = Conv2D(64, (3, 3), strides=1, kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(
-        x)
+    x = Conv2D(filters=32, kernel_size=8, strides=4,
+               kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(x)
+    x = Conv2D(filters=64, kernel_size=4, strides=2,
+               kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(x)
+    x = Conv2D(filters=64, kernel_size=3, strides=1,
+               kernel_initializer=VarianceScaling(scale=2.), activation='relu', use_bias=False)(x)
+
     x = Flatten()(x)
-    x = Dense(128, kernel_initializer=VarianceScaling(scale=2.))(x)
-    x = Dense(64, kernel_initializer=VarianceScaling(scale=2.))(x)
+    x = Dense(512, kernel_initializer=VarianceScaling(scale=2.), activation='relu')(x)
 
     value_output = Dense(1)(x)
     advantage_output = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))(x)
-
     reduce_mean = Lambda(lambda w: tf.reduce_mean(w, axis=1, keepdims=True))
+
     output = Add()([value_output, Subtract()([advantage_output, reduce_mean(advantage_output)])])
 
     model = Model(model_input, output)
-    model.compile(Adam(learning_rate=learning_rate))
+    model.compile(Adam(learning_rate=learning_rate, epsilon=1e-6))
     model.summary()
 
     return model

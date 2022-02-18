@@ -12,8 +12,6 @@ from collections import deque
 from datetime import timedelta, datetime
 from time import perf_counter, sleep
 from termcolor import colored
-from tensorflow.keras.optimizers import Adam
-
 from DeepRL.utils.common import write_from_dict
 
 
@@ -27,19 +25,21 @@ class BaseAgent(ABC):
             env,
             model,
             buffer,
+            agent_id,
             mean_reward_step=100,
             gamma=0.99,
             frame_stack=4,
             optimizer=None,
             model_update_freq=4,
             target_sync_freq=1000,
-            model_save_interval=2000,
-            model_path=None,
+            model_save_interval=100,
+            saving_path=None,
             log_history=False,
             quiet=False,
     ):
-        self.game_id = env.id
         self.env = env
+        self.game_id = env.id
+        self.agent_id = agent_id
         self.n_actions = self.env.action_space.n
         self.frame_stack = frame_stack
         self.input_shape = self.env.observation_space.shape
@@ -70,15 +70,12 @@ class BaseAgent(ABC):
         self.model_update_freq = model_update_freq
         self.target_sync_freq = target_sync_freq
 
-        self.model = model(n_actions=self.n_actions,
-                           frame_stack=frame_stack,
-                           input_shape=self.input_shape)
+        self.model = model
 
-        self.target_model = model(n_actions=self.n_actions,
-                                  frame_stack=self.frame_stack,
-                                  input_shape=self.input_shape)
+        self.target_model = tf.keras.models.clone_model(self.model)
+        self.target_model.set_weights(self.model.get_weights())
 
-        self.optimizer = Adam(learning_rate=1e-4, epsilon=1e-6) if optimizer is None else optimizer
+        self.optimizer = self.model.optimizer if optimizer is None else optimizer
 
         self.loss = tf.keras.losses.Huber()
         self.loss_metric = tf.keras.metrics.Mean('loss_metric', dtype=tf.float32)
@@ -86,12 +83,16 @@ class BaseAgent(ABC):
 
         self.quiet = quiet
 
-        self.model_path = model_path
+        self.saving_path = saving_path
         self.log_history = log_history
 
-        if self.model_path and self.log_history:
-            self.history_dict_path = self.model_path + 'history_check_point.json'
-            self.train_log_dir = self.model_path + '/log/' + datetime.now().strftime("%Y%m%d-%H%M%S")
+        assert(
+                (self.saving_path and self.log_history) or not (self.saving_path and self.log_history)
+        ), 'All true or all false'
+
+        if self.saving_path and self.log_history:
+            self.history_dict_path = self.saving_path + 'history_check_point.json'
+            self.train_log_dir = './log/' + agent_id + '/' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
 
         self.reset_env()
 
@@ -111,26 +112,19 @@ class BaseAgent(ABC):
         """
         self.state = self.env.reset()
 
-    def save_model(self, model):
+    def save_model(self):
         """
         Save model weight to checkpoint
-        Args:
-             model:
-                keras model
         """
-        if self.model_path:
-            model.save_weights(self.model_path)
+        if self.saving_path:
+            self.model.save_weights(self.saving_path)
 
-    def load_model(self, model):
+    def load_model(self):
         """
-        Load model weight from model_path
-        Args:
-            model: the initial model
+        Load model weight from saving_path
         """
-        if self.model_path:
-            check_point = tf.train.latest_checkpoint(self.model_path)
-            model.load_weights(check_point)
-        return model
+        if self.saving_path:
+            self.model.load_weights(self.saving_path)
 
     def display_learning_state(self):
         """
@@ -176,7 +170,7 @@ class BaseAgent(ABC):
                 f'{colored(str(self.mean_reward), "green")}'
             )
             self.best_mean_reward = self.mean_reward
-            self.save_model(self.model)
+            self.save_model()
 
         self.state = self.env.reset()
         self.episode_reward = 0.0
@@ -230,7 +224,7 @@ class BaseAgent(ABC):
         Check environment done counts to display progress and update metrics.
         """
         if self.done:
-            if self.model_path and self.log_history:
+            if self.saving_path and self.log_history:
                 self.update_history()
                 self.record_tensorboard()
             self.update_training_parameters()
@@ -262,29 +256,7 @@ class BaseAgent(ABC):
         write_from_dict(data, path=self.history_dict_path)
 
         if self.episode % self.model_update_freq == 0:
-            self.save_model(self.model)
-
-    def step_env(self, action):
-        """
-        Step environment in self.env_name, update metrics (if any done episode)
-            and return / store results.
-        Args:
-            action: An iterable of action to execute by environments.
-        """
-        observations = []
-        state = self.state
-        new_state, reward, done, _ = self.env.step(action)
-        self.state = new_state
-        self.done = done
-        self.episode_reward += reward
-        observation = state, action, reward, done, new_state
-        self.buffer.append(*observation)
-        if done:
-            self.mean_reward_buffer.append(self.episode_reward)
-            self.episode += 1
-            self.state = self.env.reset()
-        self.total_step += 1
-        return observations
+            self.save_model()
 
     def load_history_from_path(self):
         """
@@ -292,7 +264,7 @@ class BaseAgent(ABC):
         """
         if Path(self.history_dict_path).is_file():
             # Load model from checkpoint
-            self.model = self.load_model(self.model_path)
+            self.load_model()
             # Load training data from json
             previous_history = pd.read_json(self.history_dict_path).to_dict()
             self.mean_reward = previous_history['mean_reward'][0]
@@ -310,7 +282,8 @@ class BaseAgent(ABC):
         Args:
             max_steps: Maximum time total_step, if exceeded, the training will stop.
         """
-        if self.model_path and self.log_history:
+        self.model.compile(self.optimizer)
+        if self.saving_path and self.log_history:
             self.load_history_from_path()
         self.max_steps = max_steps
         self.training_start_time = perf_counter()
