@@ -160,15 +160,32 @@ class BaseAgent(ABC):
         )
         self.display_message(', '.join(display))
 
+    def reset_episode_parameters(self):
+        """
+        Reset the state, episode reward, done
+        """
+        self.state = self.env.reset()
+        self.episode_reward = 0.0
+        self.done = False
+
+        self.last_reset_time = perf_counter()
+        self.last_reset_step = self.total_step
+
     def update_training_parameters(self):
         """
         Update progress metrics which consist of last reset step and time used
         for calculation of fps, and update mean and best reward. The model is
         saved if there is a checkpoint path specified.
         """
+        self.episode += 1
+
         self.mean_reward_buffer.append(self.episode_reward)
         self.mean_reward = np.around(
             np.mean(self.mean_reward_buffer), 5
+        )
+
+        self.frame_speed = (self.total_step - self.last_reset_step) / (
+                perf_counter() - self.last_reset_time
         )
 
         if self.mean_reward > self.best_mean_reward:
@@ -179,17 +196,8 @@ class BaseAgent(ABC):
             self.best_mean_reward = self.mean_reward
             self.update_history()
 
-        self.state = self.env.reset()
-        self.episode_reward = 0.0
-        self.done = False
-        self.episode += 1
-
-        self.frame_speed = (self.total_step - self.last_reset_step) / (
-                perf_counter() - self.last_reset_time
-        )
-
-        self.last_reset_time = perf_counter()
-        self.last_reset_step = self.total_step
+        if self.saving_model and self.episode % self.model_save_interval == 0:
+            self.update_history()
 
     def fill_buffer(self):
         """
@@ -235,10 +243,9 @@ class BaseAgent(ABC):
         if self.done:
             if self.log_history:
                 self.record_tensorboard()
-            if self.saving_model and self.episode % self.model_save_interval == 0:
-                self.update_history()
             self.update_training_parameters()
             self.display_learning_state()
+            self.reset_episode_parameters()
 
     def check_finish_training(self):
         """
