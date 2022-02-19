@@ -136,7 +136,7 @@ class DQNAgent(BaseAgent):
         if self.total_step % self.target_sync_freq == 0:
             self.sync_target_model()
         self.total_step += 1
-        self.env.render()
+        # self.env.render()
 
     def learn(
             self,

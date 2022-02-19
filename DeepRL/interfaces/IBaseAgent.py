@@ -121,7 +121,7 @@ class BaseAgent(ABC):
         Save model weight to checkpoint
         """
         if self.saving_model:
-            print('Save Main Network Weight...')
+            print('Saving Networks Weights...')
             self.model.save_weights(self.saving_path + '/main/')
             self.target_model.save_weights(self.saving_path + '/target/')
 
@@ -178,6 +178,7 @@ class BaseAgent(ABC):
                 f'{colored(str(self.mean_reward), "green")}'
             )
             self.best_mean_reward = self.mean_reward
+            self.update_history()
 
         self.state = self.env.reset()
         self.episode_reward = 0.0
@@ -255,16 +256,16 @@ class BaseAgent(ABC):
         """
         Write 1 episode stats to checkpoint and write model when it crosses interval.
         """
-        data = {
-            'mean_reward': [self.mean_reward],
-            'best_mean_reward': [self.best_mean_reward],
-            'episode_reward': [self.episode_reward],
-            'step': [self.total_step],
-            'time': [perf_counter() - self.training_start_time],
-            'episode': [self.episode]
-        }
-        write_from_dict(data, path=self.history_dict_path)
         if self.episode % self.model_save_interval == 0:
+            data = {
+                'mean_reward': [self.mean_reward],
+                'best_mean_reward': [self.best_mean_reward],
+                'episode_reward': [self.episode_reward],
+                'step': [self.total_step],
+                'time': [perf_counter() - self.training_start_time],
+                'episode': [self.episode]
+            }
+            write_from_dict(data, path=self.history_dict_path)
             self.save_model()
 
     def load_history_from_path(self):
@@ -282,8 +283,9 @@ class BaseAgent(ABC):
             history_start_time = previous_history['time'][0]
             self.training_start_time = perf_counter() - history_start_time
             self.last_reset_step = self.total_step = int(history_start_steps)
-            self.mean_reward_buffer.append(previous_history['episode_reward'][0])
             self.episode = previous_history['episode'][0]
+            for i in range(self.episode):
+                self.mean_reward_buffer.append(self.mean_reward)
 
     def init_training(self, max_steps):
         """

@@ -1,3 +1,4 @@
+from abc import ABC
 from collections import deque
 from DeepRL.interfaces.IBaseBuffer import IBaseBuffer, Transition
 
@@ -51,7 +52,7 @@ class ExperienceReplay(IBaseBuffer):
         return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones, axis=0), tf.stack(new_states, axis=0)
 
 
-class PrioritizedExperienceReplay(IBaseBuffer):
+class PrioritizedExperienceReplay(IBaseBuffer, ABC):
     """
     This Prioritized Experience Replay Memory class
     """
@@ -77,8 +78,6 @@ class PrioritizedExperienceReplay(IBaseBuffer):
         Append experience and auto-allocate to temp buffer / main buffer(self)
         Args:
             *args: Items to store
-        """
-        raise NotImplementedError()
         if len(self.main_buffer) < self.size:
             self.main_buffer.append(args)
             self.priorities = np.append(
@@ -93,14 +92,16 @@ class PrioritizedExperienceReplay(IBaseBuffer):
             self.priorities[idx] = self.priorities.max()
 
         self.current_size = len(self.main_buffer)
+        """
+        raise NotImplementedError()
+
 
     def get_sample(self, indices):
         """
         Sample from stored experience based on priorities.
         Returns:
             Same number of args passed to append, having self.batch_size as first shape.
-        """
-        raise NotImplementedError()
+
         probs = self.priorities ** self.prob_alpha
         probs /= probs.sum()
         self.index_buffer = np.random.choice(len(self.main_buffer),
@@ -110,15 +111,18 @@ class PrioritizedExperienceReplay(IBaseBuffer):
 
         traces = [self.main_buffer[idx] for idx in self.index_buffer]
         return [np.array(item) for item in zip(*traces)]
+        """
+        raise NotImplementedError()
+
 
     def update_priorities(self, abs_errors):
         """
         Update priorities for chosen samples
         Args:
             abs_errors: abs of Y and Y_Predict
+        self.priorities[self.index_buffer] = abs_errors + self.epsilon
         """
         raise NotImplementedError()
-        self.priorities[self.index_buffer] = abs_errors + self.epsilon
 
     def __len__(self):
         return self.current_size
