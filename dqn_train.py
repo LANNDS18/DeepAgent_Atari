@@ -29,7 +29,7 @@ def train_dqn():
         epsilon_start=EPSILON_START,
         epsilon_end=EPSILON_END,
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
-        saving_path=DQN_PATH,
+        saving_model=True,
         log_history=True,
     )
 

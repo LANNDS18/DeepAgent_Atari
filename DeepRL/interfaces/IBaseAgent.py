@@ -33,8 +33,8 @@ class BaseAgent(ABC):
             model_update_freq=4,
             target_sync_freq=1000,
             model_save_interval=100,
-            saving_path=None,
-            log_history=False,
+            saving_model=True,
+            log_history=True,
             quiet=False,
     ):
         self.env = env
@@ -46,6 +46,7 @@ class BaseAgent(ABC):
 
         self.buffer = buffer
         self.mean_reward_buffer = deque(maxlen=mean_reward_step)
+        self.mean_reward_step = mean_reward_step
 
         self.gamma = gamma
         self.epsilon = 0
@@ -83,15 +84,14 @@ class BaseAgent(ABC):
 
         self.quiet = quiet
 
-        self.saving_path = saving_path
+        self.saving_model = saving_model
         self.log_history = log_history
 
-        assert(
-                (self.saving_path and self.log_history) or not (self.saving_path and self.log_history)
-        ), 'All true or all false'
-
-        if self.saving_path and self.log_history:
+        if self.saving_model:
+            self.saving_path = f'./models/{self.agent_id}/'
+            self.check_saving_path()
             self.history_dict_path = self.saving_path + 'history_check_point.json'
+        if self.log_history:
             self.train_log_dir = './log/' + agent_id + '/' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
 
         self.reset_env()
@@ -106,6 +106,10 @@ class BaseAgent(ABC):
         if not self.quiet:
             print(*args, **kwargs)
 
+    def check_saving_path(self):
+        if not os.path.exists(self.saving_path):
+            os.makedirs(self.saving_path)
+
     def reset_env(self):
         """
         Reset env with no return
@@ -117,6 +121,7 @@ class BaseAgent(ABC):
         Save model weight to checkpoint
         """
         if self.saving_path:
+            print('Save Main Network Weight...')
             self.model.save_weights(self.saving_path)
 
     def load_model(self):
@@ -136,7 +141,7 @@ class BaseAgent(ABC):
             'episode',
             'speed',
             'mean reward',
-            'best moving avg (100) reward',
+            f'best moving avg ({self.mean_reward_step}) reward',
         )
 
         display_values = (
@@ -180,6 +185,7 @@ class BaseAgent(ABC):
         self.frame_speed = (self.total_step - self.last_reset_step) / (
                 perf_counter() - self.last_reset_time
         )
+
         self.last_reset_time = perf_counter()
         self.last_reset_step = self.total_step
 
@@ -208,14 +214,15 @@ class BaseAgent(ABC):
         self.reset_env()
 
     def record_tensorboard(self):
+        step = self.episode
         train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
         with train_summary_writer.as_default():
-            tf.summary.scalar('Moving Average Reward (100 Episode)', self.mean_reward, step=self.episode)
-            tf.summary.scalar('Average Q', self.q_metric.result(), step=self.episode)
-            tf.summary.scalar('Episode Reward', self.episode_reward, step=self.episode)
-            tf.summary.scalar('Loss', self.loss_metric.result(), step=self.episode)
-            tf.summary.scalar('Epsilon', self.epsilon, step=self.episode)
-            tf.summary.scalar("Total Frames", self.total_step, step=self.episode)
+            tf.summary.scalar('Moving Average Reward (100 Episode)', self.mean_reward, step=step)
+            tf.summary.scalar('Average Q', self.q_metric.result(), step=step)
+            tf.summary.scalar('Episode Reward', self.episode_reward, step=step)
+            tf.summary.scalar('Loss', self.loss_metric.result(), step=step)
+            tf.summary.scalar('Epsilon', self.epsilon, step=step)
+            tf.summary.scalar("Total Frames", self.total_step, step=step)
         self.loss_metric.reset_states()
         self.q_metric.reset_states()
 
@@ -224,9 +231,10 @@ class BaseAgent(ABC):
         Check environment done counts to display progress and update metrics.
         """
         if self.done:
-            if self.saving_path and self.log_history:
-                self.update_history()
+            if self.log_history:
                 self.record_tensorboard()
+            if self.saving_path:
+                self.update_history()
             self.update_training_parameters()
             self.display_learning_state()
 
@@ -255,7 +263,7 @@ class BaseAgent(ABC):
         }
         write_from_dict(data, path=self.history_dict_path)
 
-        if self.episode % self.model_update_freq == 0:
+        if self.episode % self.model_save_interval == 0:
             self.save_model()
 
     def load_history_from_path(self):
@@ -282,17 +290,22 @@ class BaseAgent(ABC):
         Args:
             max_steps: Maximum time total_step, if exceeded, the training will stop.
         """
-        self.model.compile(self.optimizer)
-        if self.saving_path and self.log_history:
-            self.load_history_from_path()
+
         self.max_steps = max_steps
-        self.training_start_time = perf_counter()
-        self.last_reset_time = perf_counter()
-        self.total_step = 0
-        self.episode = 0
+
         self.state = self.env.reset()
         self.episode_reward = 0.0
         self.done = False
+        self.last_reset_time = perf_counter()
+
+        if Path(self.history_dict_path).is_file():
+            self.load_history_from_path()
+        else:
+            self.total_step = 0
+            self.episode = 1
+            self.training_start_time = perf_counter()
+
+        self.model.compile(self.optimizer)
 
     def train_step(self):
         """
