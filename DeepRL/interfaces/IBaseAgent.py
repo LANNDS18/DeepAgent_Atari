@@ -32,9 +32,9 @@ class BaseAgent(ABC):
             optimizer=None,
             model_update_freq=4,
             target_sync_freq=1000,
-            model_save_interval=100,
             saving_model=True,
             log_history=True,
+            model_save_interval=1000,
             quiet=False,
     ):
         self.env = env
@@ -88,9 +88,9 @@ class BaseAgent(ABC):
         self.log_history = log_history
 
         if self.saving_model:
-            self.saving_path = f'./models/{self.agent_id}/'
+            self.saving_path = f'./models/{self.agent_id}'
             self.check_saving_path()
-            self.history_dict_path = self.saving_path + 'history_check_point.json'
+            self.history_dict_path = self.saving_path + '/history_check_point.json'
         if self.log_history:
             self.train_log_dir = './log/' + agent_id + '/' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
 
@@ -120,16 +120,19 @@ class BaseAgent(ABC):
         """
         Save model weight to checkpoint
         """
-        if self.saving_path:
+        if self.saving_model:
             print('Save Main Network Weight...')
-            self.model.save_weights(self.saving_path)
+            self.model.save_weights(self.saving_path + '/main/')
+            self.target_model.save_weights(self.saving_path + '/target/')
 
     def load_model(self):
         """
         Load model weight from saving_path
         """
-        if self.saving_path:
-            self.model.load_weights(self.saving_path)
+        if self.saving_model:
+            print('Save Main Network Weight...')
+            self.model.load_weights(self.saving_path + '/main/')
+            self.target_model.load_weights(self.saving_path + '/target/')
 
     def display_learning_state(self):
         """
@@ -175,7 +178,6 @@ class BaseAgent(ABC):
                 f'{colored(str(self.mean_reward), "green")}'
             )
             self.best_mean_reward = self.mean_reward
-            self.save_model()
 
         self.state = self.env.reset()
         self.episode_reward = 0.0
@@ -233,7 +235,7 @@ class BaseAgent(ABC):
         if self.done:
             if self.log_history:
                 self.record_tensorboard()
-            if self.saving_path:
+            if self.saving_model:
                 self.update_history()
             self.update_training_parameters()
             self.display_learning_state()
@@ -262,7 +264,6 @@ class BaseAgent(ABC):
             'episode': [self.episode]
         }
         write_from_dict(data, path=self.history_dict_path)
-
         if self.episode % self.model_save_interval == 0:
             self.save_model()
 

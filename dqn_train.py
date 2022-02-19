@@ -31,6 +31,7 @@ def train_dqn():
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
         saving_model=True,
         log_history=True,
+        model_save_interval=MODEL_SAVE_INTERVAL
     )
 
     agent.fill_buffer()
