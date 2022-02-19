@@ -9,6 +9,7 @@ class DoubleDQNAgent(DQNAgent):
             env,
             model,
             buffer,
+            agent_id='Double DQN',
             **kwargs,
     ):
         """
@@ -20,7 +21,7 @@ class DoubleDQNAgent(DQNAgent):
             buffer: A buffer objects
             **kwargs: kwargs passed to super classes.
         """
-        super(DoubleDQNAgent, self).__init__(env, model, buffer, **kwargs)
+        super(DoubleDQNAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
 
     @tf.function
     def update_main_model(self, states, actions, rewards, dones, new_states):

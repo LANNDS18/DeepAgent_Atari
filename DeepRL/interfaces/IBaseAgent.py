@@ -1,6 +1,4 @@
 import os
-from pathlib import Path
-
 import gym
 import cv2
 import numpy as np
@@ -8,6 +6,7 @@ import pandas as pd
 import tensorflow as tf
 
 from abc import ABC
+from pathlib import Path
 from collections import deque
 from datetime import timedelta, datetime
 from time import perf_counter, sleep
@@ -121,7 +120,7 @@ class BaseAgent(ABC):
         Save model weight to checkpoint
         """
         if self.saving_model:
-            print('Saving Networks Weights...')
+            print('Saving Weights...')
             self.model.save_weights(self.saving_path + '/main/')
             self.target_model.save_weights(self.saving_path + '/target/')
 
@@ -130,7 +129,7 @@ class BaseAgent(ABC):
         Load model weight from saving_path
         """
         if self.saving_model:
-            print('Save Main Network Weight...')
+            print('Loading Weights...')
             self.model.load_weights(self.saving_path + '/main/')
             self.target_model.load_weights(self.saving_path + '/target/')
 
@@ -236,7 +235,7 @@ class BaseAgent(ABC):
         if self.done:
             if self.log_history:
                 self.record_tensorboard()
-            if self.saving_model:
+            if self.saving_model and self.episode % self.model_save_interval == 0:
                 self.update_history()
             self.update_training_parameters()
             self.display_learning_state()
@@ -256,17 +255,16 @@ class BaseAgent(ABC):
         """
         Write 1 episode stats to checkpoint and write model when it crosses interval.
         """
-        if self.episode % self.model_save_interval == 0:
-            data = {
-                'mean_reward': [self.mean_reward],
-                'best_mean_reward': [self.best_mean_reward],
-                'episode_reward': [self.episode_reward],
-                'step': [self.total_step],
-                'time': [perf_counter() - self.training_start_time],
-                'episode': [self.episode]
-            }
-            write_from_dict(data, path=self.history_dict_path)
-            self.save_model()
+        data = {
+            'mean_reward': [self.mean_reward],
+            'best_mean_reward': [self.best_mean_reward],
+            'episode_reward': [self.episode_reward],
+            'step': [self.total_step],
+            'time': [perf_counter() - self.training_start_time],
+            'episode': [self.episode]
+        }
+        write_from_dict(data, path=self.history_dict_path)
+        self.save_model()
 
     def load_history_from_path(self):
         """

@@ -11,6 +11,7 @@ class DQNAgent(BaseAgent):
             env,
             model,
             buffer,
+            agent_id='DQN',
             epsilon_start=1.0,
             epsilon_end=0.02,
             epsilon_decay_steps=150000,
@@ -31,7 +32,7 @@ class DQNAgent(BaseAgent):
             target_sync_steps: Steps to sync target model after each.
             **kwargs: kwargs passed to super classes.
         """
-        super(DQNAgent, self).__init__(env, model, buffer, **kwargs)
+        super(DQNAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
         self.epsilon_start = epsilon_start
         self.epsilon = epsilon_start
         self.epsilon_end = epsilon_end

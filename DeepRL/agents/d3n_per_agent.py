@@ -10,6 +10,7 @@ class D3NPERAgent(DoubleDQNAgent):
             env,
             model,
             buffer,
+            agent_id='PER_D3N',
             **kwargs,
     ):
         """
@@ -21,5 +22,5 @@ class D3NPERAgent(DoubleDQNAgent):
             buffer: A prioritized experience replay buffer objects
             **kwargs: kwargs passed to super classes.
         """
-        super(D3NPERAgent, self).__init__(env, model, buffer, **kwargs)
+        super(D3NPERAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
         self.tds_error = 0

@@ -1,9 +1,9 @@
+import tensorflow as tf
+import numpy as np
+
 from abc import ABC
 from collections import deque
 from DeepRL.interfaces.IBaseBuffer import IBaseBuffer, Transition
-
-import tensorflow as tf
-import numpy as np
 
 
 class ExperienceReplay(IBaseBuffer):
@@ -49,7 +49,9 @@ class ExperienceReplay(IBaseBuffer):
             dones.append(tf.constant(item.done, tf.bool))
             new_states.append(tf.constant(item.new_state, tf.float32))
 
-        return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones, axis=0), tf.stack(new_states, axis=0)
+        return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones,
+                                                                                                        axis=0), tf.stack(
+            new_states, axis=0)
 
 
 class PrioritizedExperienceReplay(IBaseBuffer, ABC):
@@ -95,7 +97,6 @@ class PrioritizedExperienceReplay(IBaseBuffer, ABC):
         """
         raise NotImplementedError()
 
-
     def get_sample(self, indices):
         """
         Sample from stored experience based on priorities.
@@ -113,7 +114,6 @@ class PrioritizedExperienceReplay(IBaseBuffer, ABC):
         return [np.array(item) for item in zip(*traces)]
         """
         raise NotImplementedError()
-
 
     def update_priorities(self, abs_errors):
         """
