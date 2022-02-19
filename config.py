@@ -9,7 +9,7 @@ FRAME_STACK = 4
 LEARNING_RATE = 3e-4
 
 """Buffer Parameters"""
-BUFFER_SIZE = 80000
+BUFFER_SIZE = 20000
 BATCH_SIZE = 32
 
 '''Agent Parameters'''
