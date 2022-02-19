@@ -22,38 +22,38 @@ class DoubleDQNAgent(DQNAgent):
         """
         super(DoubleDQNAgent, self).__init__(env, model, buffer, **kwargs)
 
-    def get_targets(self, state, action, reward, done, new_states):
-        """
-        Get targets for gradient update.
+    @tf.function
+    def update_main_model(self, states, actions, rewards, dones, new_states):
+        """Update main q network by experience replay method.
         Args:
-            state: size = (batch size * self.input_shape)
-            action: size =  buffer batch size
-            reward: size =  buffer batch size
-            done: size =  buffer batch size
-            new_states: size = (total buffer batch size, *self.input_shape)
+            states (tf.float32): Batch of states.
+            actions (tf.int32): Batch of actions.
+            rewards (tf.float32): Batch of rewards.
+            dones (tf.bool): Batch or terminal status.
+            new_states (tf.float32): Batch of next states.
         Returns:
-            Target values: size = (total buffer batch size, *self.input_shape)
+            loss (tf.float32): Huber loss of temporal difference.
         """
-        q_states = self.model_predict(state, self.model)[1]
-        # Double Q
-        new_state_actions = self.model_predict(new_states, self.model)[0]
-        new_state_q_values = self.model_predict(new_states, self.target_model)[1]
-        a = self.get_action_indices(self.batch_indices, new_state_actions)
-        new_state_values = tf.gather_nd(new_state_q_values, a)
 
-        new_state_values = tf.where(
-            tf.cast(done, tf.bool),
-            tf.constant(0, new_state_values.dtype),
-            new_state_values,
-        )
+        with tf.GradientTape() as tape:
+            q_online = self.model(new_states)
+            action_q_online = tf.math.argmax(q_online, axis=1)
 
-        target_values = tf.identity(q_states)
+            q_target = self.target_model(new_states)
+            double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.env.get_action_space_size(), 1.0, 0.0),
+                                     axis=1)
+            # Double Q Equation #
+            expected_q = rewards + self.gamma * double_q * (
+                    1.0 - tf.cast(dones, tf.float32))
+            main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.env.get_action_space_size(), 1.0, 0.0),
+                                   axis=1)
+            loss = self.loss(tf.stop_gradient(expected_q), main_q)
 
-        target_value_update = \
-            new_state_values * self.gamma + tf.cast(reward, tf.float32)
+        gradients = tape.gradient(loss, self.model.trainable_variables)
+        clipped_gradients = [tf.clip_by_norm(grad, 10) for grad in gradients]
+        self.optimizer.apply_gradients(zip(clipped_gradients, self.model.trainable_variables))
 
-        indices = self.get_action_indices(self.batch_indices, action)
-        target_values = tf.tensor_scatter_nd_update(
-            target_values, indices, target_value_update
-        )
-        return target_values
+        self.loss_metric.update_state(loss)
+        self.q_metric.update_state(main_q)
+
+        return loss
