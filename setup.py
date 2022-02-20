@@ -12,14 +12,11 @@ setup(
 
     python_requires='>=3.8',
     install_requires=[
-        'tensorflow-metal',
         'termcolor',
         'pandas',
-        'tensorflow' or 'tensorflow-macos',
-        'scipy',
+        'tensorflow-macos',
         'gym',
         'numpy',
-        'matplotlib',
         'opencv-python'
     ],
     packages=find_packages()

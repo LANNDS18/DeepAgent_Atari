@@ -93,6 +93,11 @@ class BaseAgent(ABC):
         if self.log_history:
             self.train_log_dir = './log/' + agent_id + '/' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
 
+        self.loss_all = []
+        self.q_all = []
+        self.mean_reward_all = []
+        self.episode_reward_all = []
+
         self.reset_env()
 
     def display_message(self, *args, **kwargs):
@@ -180,6 +185,10 @@ class BaseAgent(ABC):
         self.episode += 1
 
         self.mean_reward_buffer.append(self.episode_reward)
+
+        self.mean_reward_all.append(self.mean_reward)
+        self.episode_reward_all.append(self.episode_reward)
+
         self.mean_reward = np.around(
             np.mean(self.mean_reward_buffer), 5
         )
@@ -254,6 +263,10 @@ class BaseAgent(ABC):
             bool
         """
         if self.max_steps and self.total_step >= self.max_steps:
+            np.save(self.saving_path + '/loss', self.loss_all)
+            np.save(self.saving_path + '/average q value', self.q_all)
+            np.save(self.saving_path + '/moving average reward (100 episode)', self.mean_reward_all)
+            np.save(self.saving_path + '/episode reward', self.episode_reward_all)
             self.display_message(f'Maximum total_step exceeded')
             return True
         return False
