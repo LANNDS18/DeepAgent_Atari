@@ -2,7 +2,7 @@ import numpy as np
 import gym
 
 from gym import spaces
-from DeepRL.utils.common import process_frame, LazyFrames
+from DeepAgent.utils.common import process_frame, LazyFrames
 from collections import deque
 
 
@@ -175,7 +175,7 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84)):
     env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
     env = EpisodicLifeEnv(env)
-    env = ResizeEnv(env, output_shape=(84, 84))
+    env = ResizeEnv(env, output_shape=output_shape)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = PendingFire(env)
     if frame_stack:

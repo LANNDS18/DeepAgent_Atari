@@ -11,7 +11,7 @@ from collections import deque
 from datetime import timedelta, datetime
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepRL.utils.common import write_from_dict
+from DeepAgent.utils.common import write_from_dict
 
 
 class BaseAgent(ABC):

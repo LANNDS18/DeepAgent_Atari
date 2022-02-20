@@ -1,7 +1,7 @@
-from DeepRL.networks.cnn import build_dqn_network
-from DeepRL.utils.buffer import ExperienceReplay
-from DeepRL.utils.game import GameEnv
-from DeepRL.agents.dqn import DQNAgent
+from DeepAgent.networks.cnn import build_dqn_network
+from DeepAgent.utils.buffer import ExperienceReplay
+from DeepAgent.utils.game import GameEnv
+from DeepAgent.agents.dqn import DQNAgent
 from config import *
 
 

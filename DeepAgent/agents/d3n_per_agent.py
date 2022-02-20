@@ -1,5 +1,5 @@
 import tensorflow as tf
-from DeepRL.agents.double_dqn import DoubleDQNAgent
+from DeepAgent.agents.double_dqn import DoubleDQNAgent
 from tensorflow.keras.losses import MSE
 
 

@@ -3,7 +3,7 @@ import numpy as np
 
 from abc import ABC
 from collections import deque
-from DeepRL.interfaces.IBaseBuffer import IBaseBuffer, Transition
+from DeepAgent.interfaces.IBaseBuffer import IBaseBuffer, Transition
 
 
 class ExperienceReplay(IBaseBuffer):
@@ -54,7 +54,7 @@ class ExperienceReplay(IBaseBuffer):
             new_states, axis=0)
 
 
-class PrioritizedExperienceReplay(IBaseBuffer, ABC):
+class PrioritizedExperienceReplay(IBaseBuffer):
     """
     This Prioritized Experience Replay Memory class
     """
@@ -68,6 +68,9 @@ class PrioritizedExperienceReplay(IBaseBuffer, ABC):
             prob_alpha: The probability of being assigned the priority
         """
         super(PrioritizedExperienceReplay, self).__init__(size, **kwargs)
+        self.size = int(size)
+        self._buffer = deque(maxlen=size)
+        self.current_size = 0
         self.main_buffer = []
         self.index_buffer = []
         self.priorities = np.array([])
@@ -81,6 +84,7 @@ class PrioritizedExperienceReplay(IBaseBuffer, ABC):
         Args:
             *args: Items to store
         if len(self.main_buffer) < self.size:
+            transition = Transition(*args)
             self.main_buffer.append(args)
             self.priorities = np.append(
                 self.priorities,
@@ -96,6 +100,13 @@ class PrioritizedExperienceReplay(IBaseBuffer, ABC):
         self.current_size = len(self.main_buffer)
         """
         raise NotImplementedError()
+
+    def get_sample_indices(self):
+        indices = []
+        while len(indices) < self.batch_size:
+            index = np.random.randint(low=0, high=self.size, dtype=np.int32)
+            indices.append(index)
+        return indices
 
     def get_sample(self, indices):
         """

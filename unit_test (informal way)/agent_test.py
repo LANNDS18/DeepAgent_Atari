@@ -3,10 +3,10 @@ from time import perf_counter
 
 import pandas as pd
 
-from DeepRL.networks.dueling import build_dueling_network
-from DeepRL.utils.buffer import ExperienceReplay
-from DeepRL.utils.game import GameEnv
-from DeepRL.agents.double_dqn import DoubleDQNAgent
+from DeepAgent.networks.dueling import build_dueling_network
+from DeepAgent.utils.buffer import ExperienceReplay
+from DeepAgent.utils.game import GameEnv
+from DeepAgent.agents.double_dqn import DoubleDQNAgent
 from config import *
 
 

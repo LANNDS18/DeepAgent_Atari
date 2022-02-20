@@ -1,5 +1,5 @@
-from DeepRL.utils.buffer import PrioritizedExperienceReplay, ExperienceReplay
-from DeepRL.utils.game import GameEnv
+from DeepAgent.utils.buffer import PrioritizedExperienceReplay, ExperienceReplay
+from DeepAgent.utils.game import GameEnv
 from config import *
 
 
