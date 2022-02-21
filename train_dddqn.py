@@ -6,28 +6,32 @@ from config import *
 
 
 def train_dddqn():
-    game = GameEnv(ENV_NAME,
+    game = GameEnv(env_name=ENV_NAME,
                    output_shape=IMAGE_SHAPE,
                    frame_stack=FRAME_STACK)
 
-    model = build_dueling_network(game.action_space.n,
-                                  learning_rate=LEARNING_RATE,
-                                  input_shape=IMAGE_SHAPE,
-                                  frame_stack=FRAME_STACK)
+    buffer = ExperienceReplay(size=BUFFER_SIZE,
+                              batch_size=BATCH_SIZE)
 
-    buffer = ExperienceReplay(size=BUFFER_SIZE, batch_size=BATCH_SIZE)
+    dqn_network = build_dueling_network(
+        n_actions=game.action_space.n,
+        learning_rate=LEARNING_RATE,
+        input_shape=IMAGE_SHAPE,
+        frame_stack=FRAME_STACK
+    )
 
     agent = DoubleDQNAgent(
-        agent_id='DoubleDuelingDQN_v1',
+        agent_id='DoubleDuelingDQN',
         env=game,
-        model=model,
+        model=dqn_network,
         buffer=buffer,
         gamma=GAMMA,
         epsilon_start=EPSILON_START,
         epsilon_end=EPSILON_END,
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
-        model_path=DDDQN_PATH,
+        saving_model=True,
         log_history=True,
+        model_save_interval=MODEL_SAVE_INTERVAL
     )
 
     agent.fill_buffer()

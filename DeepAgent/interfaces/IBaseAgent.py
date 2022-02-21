@@ -195,8 +195,10 @@ class BaseAgent(ABC):
                 f'{colored(str(self.mean_reward), "green")}'
             )
             self.best_mean_reward = self.mean_reward
+            if self.saving_model:
+                self.update_history()
 
-        if self.saving_model or (self.episode % self.model_save_interval == 0 and self.saving_model):
+        if self.episode % self.model_save_interval == 0 and self.saving_model:
             self.update_history()
 
     def fill_buffer(self):
@@ -305,12 +307,12 @@ class BaseAgent(ABC):
         self.episode_reward = 0.0
         self.done = False
         self.last_reset_time = perf_counter()
+        self.training_start_time = perf_counter()
         if self.saving_model:
             self.load_history_from_path()
         else:
             self.total_step = 0
             self.episode = 1
-            self.training_start_time = perf_counter()
 
         self.model.compile(self.optimizer)
 
