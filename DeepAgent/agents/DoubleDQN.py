@@ -1,5 +1,5 @@
 import tensorflow as tf
-from DeepAgent.agents.dqn import DQNAgent
+from DeepAgent.agents.DQN import DQNAgent
 
 
 class DoubleDQNAgent(DQNAgent):

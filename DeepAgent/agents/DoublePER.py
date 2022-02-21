@@ -1,5 +1,5 @@
 import tensorflow as tf
-from DeepAgent.agents.double_dqn import DoubleDQNAgent
+from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
 from DeepAgent.utils.buffer import PrioritizedExperienceReplay
 
 

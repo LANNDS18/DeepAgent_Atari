@@ -6,8 +6,8 @@ import pandas as pd
 from DeepAgent.networks.dueling import build_dueling_network
 from DeepAgent.utils.buffer import ExperienceReplay, PrioritizedExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.double_dqn import DoubleDQNAgent
-from DeepAgent.agents.d3n_per_agent import D3NPERAgent
+from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
+from DeepAgent.agents.DoublePER import D3NPERAgent
 from config import *
 
 

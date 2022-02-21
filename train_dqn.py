@@ -1,7 +1,7 @@
 from DeepAgent.networks.cnn import build_dqn_network
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.dqn import DQNAgent
+from DeepAgent.agents.DQN import DQNAgent
 from config import *
 
 
