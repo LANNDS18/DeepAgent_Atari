@@ -28,6 +28,7 @@ def test_per_buffer():
     a = buffer.get_sample(a_id)
     print(a)
 
+
 def test_buffer_three_batch_size():
     buffer = ExperienceReplay(size=8, batch_size=3)
     game = GameEnv(ENV_NAME, output_shape=IMAGE_SHAPE)
@@ -35,6 +36,7 @@ def test_buffer_three_batch_size():
     a_id = buffer.get_sample_indices()
     a = buffer.get_sample(a_id)
     print(a)
+
 
 def test_buffer_one_batch_size():
     buffer = ExperienceReplay(size=8, batch_size=1)
@@ -47,3 +49,5 @@ def test_buffer_one_batch_size():
 
 if __name__ == '__main__':
     test_buffer_three_batch_size()
+    test_buffer_one_batch_size()
+    test_per_buffer()
