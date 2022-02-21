@@ -1,14 +1,15 @@
 from DeepAgent.networks.dueling import build_dueling_network
+from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
 from config import *
 
 
 def train_dddqn():
     game = GameEnv(env_name=ENV_NAME,
                    output_shape=IMAGE_SHAPE,
-                   frame_stack=FRAME_STACK)
+                   frame_stack=FRAME_STACK,
+                   train=True)
 
     buffer = ExperienceReplay(size=BUFFER_SIZE,
                               batch_size=BATCH_SIZE)

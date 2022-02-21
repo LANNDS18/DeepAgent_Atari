@@ -34,7 +34,7 @@ def test_d3qn_with_batch_1():
 
 def test_loading():
     total_rewards = []
-    path = DDDQN_PATH + 'history_check_point.json'
+    path = '../models/DQN_v1/history_check_point.json'
     my_file = Path(path)
     if Path(my_file).is_file():
         previous_history = pd.read_json(my_file)

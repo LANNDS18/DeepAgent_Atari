@@ -27,7 +27,7 @@ class PendingFire(gym.Wrapper):
 
 class EpisodicLifeEnv(gym.Wrapper):
     def __init__(self, env_name):
-        """Make end-of-life == end-of-episode, but only reset on true game over.
+        """Make end-of-life == end-of-episode, but only reset on true test_env over.
         Done by DeepMind for the DQN and co. since it helps value estimation.
         """
         gym.Wrapper.__init__(self, env_name)
@@ -161,7 +161,7 @@ class ResizeEnv(gym.Wrapper):
         Returns:
             next_state: The processed new frame as a result of that action
             reward: The reward for taking that action
-            done: Whether the game has ended
+            done: Whether the test_env has ended
             info: other information
         """
         next_state, reward, done, info = self.env.step(action)
@@ -169,12 +169,24 @@ class ResizeEnv(gym.Wrapper):
         return next_state, reward, done, info
 
 
-def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84)):
+class ClipReward(gym.RewardWrapper):
+    def __init__(self, env):
+        super(ClipReward, self).__init__(env)
+
+    def reward(self, reward):
+        return np.sign(reward)
+
+
+def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), train=True):
     assert 'NoFrameskip' in env_name
     env = gym.make(env_name)
     env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
-    env = EpisodicLifeEnv(env)
+
+    if train:
+        env = EpisodicLifeEnv(env)
+        env = ClipReward(env)
+
     env = ResizeEnv(env, output_shape=output_shape)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = PendingFire(env)
@@ -186,12 +198,11 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84)):
 class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env_name, output_shape=(84, 84), frame_stack=4):
-        env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=(84, 84))
+    def __init__(self, env_name, output_shape=(84, 84), frame_stack=4, train=True):
+        env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=(84, 84), train=train)
         self.id = env_name
         self.env = env
         self.output_shape = output_shape
-        self.real_score = 0
         super().__init__(env)
 
     def reset(self):
@@ -205,10 +216,9 @@ class GameEnv(gym.Wrapper):
         Returns:
             next_state: The processed new frame as a result of that action
             reward: The reward for taking that action
-            done: Whether the game has ended
+            done: Whether the test_env has ended
             info: other information
         """
         next_state, reward, done, info = self.env.step(action)
         next_state = np.array(next_state)
-        self.real_score += reward
-        return next_state, np.sign(reward), done, info
+        return next_state, reward, done, info

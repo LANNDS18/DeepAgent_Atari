@@ -8,7 +8,8 @@ from config import *
 def train_per():
     game = GameEnv(env_name=ENV_NAME,
                    output_shape=IMAGE_SHAPE,
-                   frame_stack=FRAME_STACK)
+                   frame_stack=FRAME_STACK,
+                   train=True)
 
     buffer = PrioritizedExperienceReplay(size=BUFFER_SIZE,
                                          batch_size=BATCH_SIZE)
