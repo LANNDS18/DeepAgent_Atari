@@ -1,6 +1,5 @@
 import os
 import gym
-import cv2
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -128,10 +127,9 @@ class BaseAgent(ABC):
         """
         Load model weight from saving_path
         """
-        if self.saving_model:
-            print('Loading Weights...')
-            self.model.load_weights(self.saving_path + '/main/')
-            self.target_model.load_weights(self.saving_path + '/target/')
+        print('Loading Weights...')
+        self.model.load_weights(self.saving_path + '/main/')
+        self.target_model.load_weights(self.saving_path + '/target/')
 
     def display_learning_state(self):
         """
@@ -359,7 +357,6 @@ class BaseAgent(ABC):
             saving_path,
             render=False,
             video_dir=None,
-            frame_dir=None,
             frame_delay=0.0,
             max_episode=100,
             frame_frequency=1,
@@ -371,13 +368,12 @@ class BaseAgent(ABC):
             saving_path: The path for loading the model
             video_dir: Path to directory to save the resulting test_env video.
             render: If True, the test_env will be displayed.
-            frame_dir: Path to directory to save test_env frames.
             frame_delay: Delay between rendered frames.
             max_episode: Maximum environment episode.
             frame_frequency: If frame_dir is specified, save frames every n frames.
         """
-        model = tf.keras.models.clone_model(self.model)
-        model.load_weights(saving_path + '/main/')
+        self.saving_path = saving_path
+        self.load_model()
         episode = 0
         steps = 0
         episode_reward = 0
@@ -389,24 +385,17 @@ class BaseAgent(ABC):
         if video_dir:
             env = gym.wrappers.Monitor(env, video_dir)
             env.reset()
-
-        for dir_name in (video_dir, frame_dir):
-            os.makedirs(dir_name or '.', exist_ok=True)
+            if not os.path.exists(video_dir):
+                os.makedirs(video_dir)
 
         while True:
             if render:
                 env.render()
                 sleep(frame_delay)
 
-            if frame_dir and steps % frame_frequency == 0:
-                frame = cv2.cvtColor(
-                    env.render(mode='rgb_array'), cv2.COLOR_BGR2RGB
-                )
-                cv2.imwrite(os.path.join(frame_dir, f'{steps:05d}.jpg'), frame)
-
             # Greedy choose
             state = tf.expand_dims(state, axis=0)
-            action = np.argmax(model(state))
+            action = np.argmax(self.model(state))
             state, reward, done, _ = env.step(action)
             episode_reward += reward
             if done:
@@ -420,7 +409,9 @@ class BaseAgent(ABC):
 
                 if max_episode and episode >= max_episode:
                     self.display_message(f'Maximum total_step {max_episode} exceeded')
+                    env.close()
                     break
             steps += 1
-
+        env.close()
+        env.__exit__()
         return total_reward
