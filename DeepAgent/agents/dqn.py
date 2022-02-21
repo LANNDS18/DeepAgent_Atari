@@ -59,7 +59,7 @@ class DQNAgent(BaseAgent):
         """
         recent_state = tf.expand_dims(state, axis=0)
         if tf.random.uniform((), minval=0, maxval=1, dtype=tf.float32) < epsilon:
-            action = tf.random.uniform((), minval=0, maxval=self.env.action_space.n, dtype=tf.int32)
+            action = tf.random.uniform((), minval=0, maxval=self.n_actions, dtype=tf.int32)
         else:
             q_value = self.model(tf.cast(recent_state, tf.float32))
             action = tf.cast(tf.squeeze(tf.math.argmax(q_value, axis=1)), dtype=tf.int32)
@@ -100,7 +100,7 @@ class DQNAgent(BaseAgent):
             expected_q = rewards + self.gamma * next_state_max_q * (
                     1.0 - tf.cast(dones, tf.float32))
             main_q = tf.reduce_sum(
-                self.model(states) * tf.one_hot(actions, self.env.action_space.n, 1.0, 0.0),
+                self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
                 axis=1)
             loss = self.loss(tf.stop_gradient(expected_q), main_q)
 
@@ -109,9 +109,6 @@ class DQNAgent(BaseAgent):
         self.optimizer.apply_gradients(zip(clipped_gradients, self.model.trainable_variables))
         self.loss_metric.update_state(loss)
         self.q_metric.update_state(main_q)
-
-        self.loss_all.append(loss)
-        self.q_all.append(main_q)
 
         return loss
 
@@ -133,8 +130,7 @@ class DQNAgent(BaseAgent):
             indices = self.buffer.get_sample_indices()
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
 
-            self.update_main_model(states, actions, rewards,
-                                   dones, next_states)
+            self.update_main_model(states, actions, rewards, dones, next_states)
 
     def at_step_end(self):
         if self.total_step % self.target_sync_freq == 0:

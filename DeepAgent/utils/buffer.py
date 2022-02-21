@@ -37,9 +37,8 @@ class ExperienceReplay(IBaseBuffer):
             dones.append(tf.constant(item.done, tf.bool))
             new_states.append(tf.constant(item.new_state, tf.float32))
 
-        return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones,
-                                                                                                        axis=0), tf.stack(
-            new_states, axis=0)
+        return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones, axis=0), \
+               tf.stack(new_states, axis=0)
 
     def __len__(self):
         return len(self._buffer)

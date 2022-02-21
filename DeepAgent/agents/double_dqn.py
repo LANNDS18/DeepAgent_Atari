@@ -41,12 +41,12 @@ class DoubleDQNAgent(DQNAgent):
             action_q_online = tf.math.argmax(q_online, axis=1)
 
             q_target = self.target_model(new_states)
-            double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.env.get_action_space_size(), 1.0, 0.0),
+            double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0),
                                      axis=1)
             # Double Q Equation #
             expected_q = rewards + self.gamma * double_q * (
                     1.0 - tf.cast(dones, tf.float32))
-            main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.env.get_action_space_size(), 1.0, 0.0),
+            main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
                                    axis=1)
             loss = self.loss(tf.stop_gradient(expected_q), main_q)
 
@@ -57,4 +57,4 @@ class DoubleDQNAgent(DQNAgent):
         self.loss_metric.update_state(loss)
         self.q_metric.update_state(main_q)
 
-        return loss
+        return main_q, expected_q
