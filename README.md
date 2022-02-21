@@ -11,10 +11,10 @@ This repository implements Deep Q-Network (DQN) and several improvement algorith
 
 * tensorflow-macos 2.0+ (for macOS)
 
-
-    conda install -c apple tensorflow-deps
-    python -m pip install tensorflow-macos
-
+```
+conda install -c apple tensorflow-deps
+python -m pip install tensorflow-macos
+```
 
 * OpenAI Gym 
 
