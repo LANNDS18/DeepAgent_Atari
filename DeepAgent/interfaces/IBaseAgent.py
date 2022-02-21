@@ -31,8 +31,8 @@ class BaseAgent(ABC):
             optimizer=None,
             model_update_freq=4,
             target_sync_freq=1000,
-            saving_model=True,
-            log_history=True,
+            saving_model=False,
+            log_history=False,
             model_save_interval=1000,
             quiet=False,
     ):
@@ -355,48 +355,72 @@ class BaseAgent(ABC):
 
     def play(
             self,
-            video_dir=None,
+            test_env,
+            saving_path,
             render=False,
+            video_dir=None,
             frame_dir=None,
             frame_delay=0.0,
-            max_steps=None,
+            max_episode=100,
             frame_frequency=1,
     ):
         """
-        Play and display a game.
+        Play and display a test_env.
         Args:
-            video_dir: Path to directory to save the resulting game video.
-            render: If True, the game will be displayed.
-            frame_dir: Path to directory to save game frames.
+            test_env: The env for testing the agent
+            saving_path: The path for loading the model
+            video_dir: Path to directory to save the resulting test_env video.
+            render: If True, the test_env will be displayed.
+            frame_dir: Path to directory to save test_env frames.
             frame_delay: Delay between rendered frames.
-            max_steps: Maximum environment total_step.
+            max_episode: Maximum environment episode.
             frame_frequency: If frame_dir is specified, save frames every n frames.
         """
-        self.reset_env()
-        total_reward = 0
-        env_in_use = self.env
-        if video_dir:
-            env_in_use = gym.wrappers.Monitor(env_in_use, video_dir)
-            env_in_use.reset()
+        model = tf.keras.models.clone_model(self.model)
+        model.load_weights(saving_path + '/main/')
+        episode = 0
         steps = 0
+        episode_reward = 0
+        total_reward = []
+
+        env = test_env
+        state = env.reset()
+
+        if video_dir:
+            env = gym.wrappers.Monitor(env, video_dir)
+            env.reset()
+
         for dir_name in (video_dir, frame_dir):
             os.makedirs(dir_name or '.', exist_ok=True)
+
         while True:
-            if max_steps and steps >= max_steps:
-                self.display_message(f'Maximum total_step {max_steps} exceeded')
-                break
             if render:
-                env_in_use.render()
+                env.render()
                 sleep(frame_delay)
+
             if frame_dir and steps % frame_frequency == 0:
                 frame = cv2.cvtColor(
-                    env_in_use.render(mode='rgb_array'), cv2.COLOR_BGR2RGB
+                    env.render(mode='rgb_array'), cv2.COLOR_BGR2RGB
                 )
                 cv2.imwrite(os.path.join(frame_dir, f'{steps:05d}.jpg'), frame)
-            action = np.argmax(self.model(self.state))
-            self.state, reward, done, _ = env_in_use.step(action)
-            total_reward += reward
+
+            # Greedy choose
+            state = tf.expand_dims(state, axis=0)
+            action = np.argmax(model(state))
+            state, reward, done, _ = env.step(action)
+            episode_reward += reward
             if done:
-                self.display_message(f'Total reward: {total_reward}')
-                break
+                total_reward.append(episode_reward)
+                self.display_message(f'Episode: {episode}, Episode Reward: {episode_reward}')
+
+                episode += 1
+                episode_reward = 0
+
+                state = env.reset()
+
+                if max_episode and episode >= max_episode:
+                    self.display_message(f'Maximum total_step {max_episode} exceeded')
+                    break
             steps += 1
+
+        return total_reward

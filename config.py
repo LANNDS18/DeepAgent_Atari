@@ -22,6 +22,7 @@ MODEL_SAVE_INTERVAL = 500
 '''Learning Parameters'''
 TRAINING_STEP = int(5e6)
 
-'''Model Paths'''
-DQN_PATH = 'models/dqn/'
-DDDQN_PATH = 'models/dddqn/'
+'''Evaluation Parameters'''
+TEST_BUFFER_SIZE = 10
+TEST_BATCH_SIZE = 1
+TEST_MAX_EPISODE = 100
