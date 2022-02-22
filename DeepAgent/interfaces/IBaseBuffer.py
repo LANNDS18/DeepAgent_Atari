@@ -28,7 +28,6 @@ class IBaseBuffer:
         if initial_size:
             assert size >= initial_size, 'Buffer initial size exceeds max size'
         self.size = size
-        self.initial_size = initial_size or size
         self.batch_size = batch_size
         self.current_size = 0
 

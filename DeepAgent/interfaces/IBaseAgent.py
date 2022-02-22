@@ -199,14 +199,14 @@ class BaseAgent(ABC):
         if self.episode % self.model_save_interval == 0 and self.saving_model:
             self.update_history()
 
-    def fill_buffer(self):
+    def fill_buffer(self, fill_size=20000):
         """
         Fill replay buffer up to its initial size.
         """
-        total_size = self.buffer.initial_size
+        total_size = self.buffer.size
         buffer = self.buffer
         state = self.env.reset()
-        while buffer.current_size < buffer.initial_size:
+        while buffer.current_size < fill_size:
             action = self.env.action_space.sample()
             new_state, reward, done, _ = self.env.step(action)
             buffer.append(state, action, reward, done, new_state)

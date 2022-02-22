@@ -5,7 +5,7 @@ from config import *
 
 def test_fill_buffer(buffer, env):
     state = env.reset()
-    while buffer.current_size < buffer.initial_size:
+    while buffer.current_size < buffer.size:
         action = env.action_space.sample()
         new_state, reward, done, _ = env.step(action)
         buffer.append(state, action, reward, done, new_state)
