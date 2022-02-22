@@ -3,7 +3,7 @@ from collections import namedtuple
 Transition = namedtuple("Transition", ("state", "action", "reward", "done", "new_state"))
 
 
-class IBaseBuffer:
+class BaseBuffer:
     """
     Base class for replay buffer.
     """

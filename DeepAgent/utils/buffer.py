@@ -2,10 +2,10 @@ import tensorflow as tf
 import numpy as np
 
 from collections import deque
-from DeepAgent.interfaces.IBaseBuffer import IBaseBuffer, Transition
+from DeepAgent.interfaces.IBaseBuffer import BaseBuffer, Transition
 
 
-class ExperienceReplay(IBaseBuffer):
+class ExperienceReplay(BaseBuffer):
     """
     This class manages buffer of agent.
     """
@@ -22,7 +22,7 @@ class ExperienceReplay(IBaseBuffer):
     def get_sample_indices(self):
         indices = []
         while len(indices) < self.batch_size:
-            index = np.random.randint(low=0, high=self.size, dtype=np.int32)
+            index = np.random.randint(low=0, high=self.current_size, dtype=np.int32)
             indices.append(index)
         return indices
 
