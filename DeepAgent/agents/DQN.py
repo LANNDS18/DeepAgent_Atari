@@ -110,8 +110,6 @@ class DQNAgent(BaseAgent):
         self.loss_metric.update_state(loss)
         self.q_metric.update_state(main_q)
 
-        return loss
-
     def train_step(self):
         """
         Perform 1 step which controls action_selection, interaction with environments

@@ -55,4 +55,3 @@ class DoubleDQNAgent(DQNAgent):
         self.loss_metric.update_state(loss)
         self.q_metric.update_state(main_q)
 
-        return main_q, target_q
