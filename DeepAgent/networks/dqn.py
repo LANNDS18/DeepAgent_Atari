@@ -1,12 +1,11 @@
-import tensorflow as tf
 from tensorflow.keras.initializers import VarianceScaling
-from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Add, Lambda, Subtract
+from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Lambda
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from DeepAgent.interfaces.IBaseNN import BaseNN
 
 
-class DuelingNetwork(BaseNN):
+class DQNNetwork(BaseNN):
     def __init__(self):
         super().__init__()
 
@@ -32,12 +31,7 @@ class DuelingNetwork(BaseNN):
         x = Flatten()(x)
         x = Dense(512, kernel_initializer=VarianceScaling(scale=2.), activation='relu')(x)
 
-        value_output = Dense(1)(x)
-        advantage_output = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))(x)
-        reduce_mean = Lambda(lambda w: tf.reduce_mean(w, axis=1, keepdims=True))
-
-        output = Add()([value_output, Subtract()([advantage_output, reduce_mean(advantage_output)])])
-
+        output = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.0), activation="linear")(x)
         model = Model(model_input, output)
         model.compile(Adam(learning_rate=learning_rate, epsilon=1e-6))
         model.summary()
