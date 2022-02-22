@@ -35,20 +35,18 @@ class DoubleDQNAgent(DQNAgent):
         Returns:
             loss (tf.float32): Huber loss of temporal difference.
         """
+        q_online = self.model(new_states)
+        action_q_online = tf.math.argmax(q_online, axis=1)
+
+        q_target = self.target_model(new_states)
+        double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0), axis=1)
 
         with tf.GradientTape() as tape:
-            q_online = self.model(new_states)
-            action_q_online = tf.math.argmax(q_online, axis=1)
-
-            q_target = self.target_model(new_states)
-            double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0),
-                                     axis=1)
             # Double Q Equation #
-            expected_q = rewards + self.gamma * double_q * (
+            target_q = rewards + self.gamma * double_q * (
                     1.0 - tf.cast(dones, tf.float32))
-            main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
-                                   axis=1)
-            loss = self.loss(tf.stop_gradient(expected_q), main_q)
+            main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0), axis=1)
+            loss = self.loss(tf.stop_gradient(target_q), main_q)
 
         gradients = tape.gradient(loss, self.model.trainable_variables)
         clipped_gradients = [tf.clip_by_norm(grad, 10) for grad in gradients]
@@ -57,4 +55,4 @@ class DoubleDQNAgent(DQNAgent):
         self.loss_metric.update_state(loss)
         self.q_metric.update_state(main_q)
 
-        return main_q, expected_q
+        return main_q, target_q

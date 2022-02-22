@@ -35,7 +35,7 @@ def train_dqn():
         model_save_interval=MODEL_SAVE_INTERVAL
     )
 
-    agent.fill_buffer()
+    agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
     agent.learn(max_steps=TRAINING_STEP)
 
 

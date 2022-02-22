@@ -1,7 +1,7 @@
 from DeepAgent.networks.dueling import build_dueling_network
 from DeepAgent.utils.buffer import PrioritizedExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
+from DeepAgent.agents.DoublePER import D3NPERAgent
 from config import *
 
 
@@ -21,8 +21,8 @@ def train_per():
         frame_stack=FRAME_STACK
     )
 
-    agent = DoubleDQNAgent(
-        agent_id='DoubleDuelingPER',
+    agent = D3NPERAgent(
+        agent_id='DoubleDuelingPER_v1',
         env=game,
         model=dqn_network,
         buffer=buffer,
@@ -35,7 +35,7 @@ def train_per():
         model_save_interval=MODEL_SAVE_INTERVAL
     )
 
-    agent.fill_buffer()
+    agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
     agent.learn(max_steps=TRAINING_STEP)
 
 

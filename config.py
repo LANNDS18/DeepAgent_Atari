@@ -6,21 +6,22 @@ IMAGE_SHAPE = (84, 84)
 FRAME_STACK = 4
 
 '''Network Parameters '''
-LEARNING_RATE = 3e-4
+LEARNING_RATE = 5e-4
 
 """Buffer Parameters"""
-BUFFER_SIZE = 20000
+BUFFER_SIZE = 80000
 BATCH_SIZE = 32
+FILL_BUFFER_SIZE = 20000
 
 '''Agent Parameters'''
 GAMMA = 0.99
 EPSILON_START = 1.0
-EPSILON_END = 0.02
-EPSILON_DECAY_STEPS = int(2e6)
+EPSILON_END = 0.1
+EPSILON_DECAY_STEPS = int(1e6)
 MODEL_SAVE_INTERVAL = 500
 
 '''Learning Parameters'''
-TRAINING_STEP = int(5e6)
+TRAINING_STEP = int(2e6)
 
 '''Evaluation Parameters'''
 TEST_BUFFER_SIZE = 10
