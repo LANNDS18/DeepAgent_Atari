@@ -1,7 +1,7 @@
 from DeepAgent.networks.dueling import DuelingNetwork
 from DeepAgent.utils.buffer import PrioritizedExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.DoublePER import D3NPERAgent
+from DeepAgent.agents.d3nPER import D3NPERAgent
 from TrainEvaluationWrapper import trainWrapper
 from config import *
 

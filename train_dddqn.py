@@ -1,5 +1,5 @@
 from DeepAgent.networks.dueling import DuelingNetwork
-from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
+from DeepAgent.agents.doubleDQN import DoubleDQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from TrainEvaluationWrapper import trainWrapper

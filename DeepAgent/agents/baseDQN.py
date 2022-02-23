@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-from DeepAgent.interfaces.IBaseAgent import BaseAgent
+from DeepAgent.interfaces.ibaseAgent import BaseAgent
 
 
 class DQNAgent(BaseAgent):

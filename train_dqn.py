@@ -1,5 +1,5 @@
 from DeepAgent.networks.dqn import DQNNetwork
-from DeepAgent.agents.DQN import DQNAgent
+from DeepAgent.agents.baseDQN import DQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from TrainEvaluationWrapper import trainWrapper

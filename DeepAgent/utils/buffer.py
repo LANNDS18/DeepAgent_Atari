@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 from collections import deque
-from DeepAgent.interfaces.IBaseBuffer import BaseBuffer, Transition
+from DeepAgent.interfaces.ibaseBuffer import BaseBuffer, Transition
 
 
 class ExperienceReplay(BaseBuffer):

@@ -3,18 +3,18 @@ from time import perf_counter
 
 import pandas as pd
 
-from DeepAgent.networks.dueling import build_dueling_network
+from DeepAgent.networks.dueling import DuelingNetwork
 from DeepAgent.utils.buffer import ExperienceReplay, PrioritizedExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.DoubleDQN import DoubleDQNAgent
-from DeepAgent.agents.DoublePER import D3NPERAgent
+from DeepAgent.agents.doubleDQN import DoubleDQNAgent
+from DeepAgent.agents.d3nPER import D3NPERAgent
 from config import *
 
 
 def test_d3qn_with_batch_1():
     game = GameEnv(ENV_NAME, output_shape=IMAGE_SHAPE)
 
-    model = build_dueling_network(game.action_space.n,
+    model = DuelingNetwork().build(game.action_space.n,
                                   learning_rate=LEARNING_RATE,
                                   input_shape=IMAGE_SHAPE)
 
@@ -57,7 +57,7 @@ def test_per_d3n_with_wrong_buffer():
     buffer = ExperienceReplay(size=BUFFER_SIZE,
                               batch_size=BATCH_SIZE)
 
-    dqn_network = build_dueling_network(
+    dqn_network = DuelingNetwork().build(
         n_actions=game.action_space.n,
         learning_rate=LEARNING_RATE,
         input_shape=IMAGE_SHAPE,
@@ -90,7 +90,7 @@ def test_per_d3n():
     buffer = PrioritizedExperienceReplay(size=20000,
                                          batch_size=32)
 
-    dqn_network = build_dueling_network(
+    dqn_network = DuelingNetwork().build(
         n_actions=game.action_space.n,
         learning_rate=LEARNING_RATE,
         input_shape=IMAGE_SHAPE,

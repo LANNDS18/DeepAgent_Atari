@@ -1,5 +1,5 @@
 from config import *
-from DeepAgent.interfaces import IBaseAgent, IBaseBuffer
+from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibaseNN
 from gym import Wrapper
 
 import tensorflow as tf
@@ -35,9 +35,9 @@ def trainWrapper(env, buffer, network, agent, train_id):
         model_save_interval=MODEL_SAVE_INTERVAL
     )
 
-    assert isinstance(_agent, IBaseAgent.BaseAgent)
-    assert isinstance(_network, tf.keras.Model)
-    assert isinstance(_buffer, IBaseBuffer.BaseBuffer)
+    assert isinstance(_agent, ibaseAgent.BaseAgent)
+    assert isinstance(network(), ibaseNN.BaseNN)
+    assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
 
     _agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
@@ -59,8 +59,8 @@ def testWrapper(agent, env, network, buffer, test_id):
         model=_network,
         buffer=_buffer,
     )
-    assert isinstance(_agent, IBaseAgent.BaseAgent)
-    assert isinstance(_network, tf.keras.Model)
-    assert isinstance(_buffer, IBaseBuffer.BaseBuffer)
+    assert isinstance(_agent, ibaseAgent.BaseAgent)
+    assert isinstance(network(), ibaseNN.BaseNN)
+    assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
     return _agent, _env
