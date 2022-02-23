@@ -11,7 +11,7 @@ LEARNING_RATE = 5e-4
 """Buffer Parameters"""
 BUFFER_SIZE = 80000
 BATCH_SIZE = 32
-FILL_BUFFER_SIZE = 200
+FILL_BUFFER_SIZE = 20000
 
 '''Agent Parameters'''
 GAMMA = 0.99

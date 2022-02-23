@@ -7,5 +7,4 @@ from config import *
 
 if __name__ == '__main__':
     agent = trainWrapper(GameEnv, ExperienceReplay, DQNNetwork, DQNAgent, 'DQN_v2')
-    agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
     agent.learn(max_steps=TRAINING_STEP)

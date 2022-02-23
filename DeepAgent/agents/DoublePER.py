@@ -10,7 +10,7 @@ class D3NPERAgent(DQNAgent):
             env,
             model,
             buffer,
-            agent_id='PER_D3N',
+            agent_id='D3N_PER',
             **kwargs,
     ):
         """

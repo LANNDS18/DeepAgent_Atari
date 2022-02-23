@@ -39,6 +39,8 @@ def trainWrapper(env, buffer, network, agent, train_id):
     assert isinstance(_network, tf.keras.Model)
     assert isinstance(_buffer, IBaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
+
+    _agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
     return _agent
 
 

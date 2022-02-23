@@ -90,7 +90,7 @@ class BaseAgent(ABC):
             self.check_saving_path()
             self.history_dict_path = self.saving_path + '/history_check_point.json'
         if self.log_history:
-            self.train_log_dir = './log/' + agent_id + '/' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.train_log_dir = './log/' + agent_id + '_' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
 
         self.reset_env()
 
@@ -255,6 +255,7 @@ class BaseAgent(ABC):
         """
         if self.max_steps and self.total_step >= self.max_steps:
             self.display_message(f'Maximum total_step exceeded')
+            self.update_history()
             return True
         return False
 

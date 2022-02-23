@@ -11,7 +11,6 @@ if __name__ == '__main__':
         buffer=ExperienceReplay,
         network=DuelingNetwork,
         agent=DoubleDQNAgent,
-        train_id='D3N_PER_v2')
+        train_id='DDDQN_v1')
 
-    agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
     agent.learn(max_steps=TRAINING_STEP)
