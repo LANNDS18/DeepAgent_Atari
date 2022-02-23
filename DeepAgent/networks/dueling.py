@@ -3,7 +3,7 @@ from tensorflow.keras.initializers import VarianceScaling
 from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Add, Lambda, Subtract
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from DeepAgent.interfaces.IBaseNN import BaseNN
+from DeepAgent.interfaces.ibaseNN import BaseNN
 
 
 class DuelingNetwork(BaseNN):

@@ -2,10 +2,8 @@ from config import *
 from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibaseNN
 from gym import Wrapper
 
-import tensorflow as tf
 
-
-def trainWrapper(env, buffer, network, agent, train_id):
+def trainWrapper(env, buffer, network, agent, train_id, fill_buffer=True):
     _env = env(env_name=ENV_NAME,
                output_shape=IMAGE_SHAPE,
                frame_stack=FRAME_STACK,
@@ -40,7 +38,9 @@ def trainWrapper(env, buffer, network, agent, train_id):
     assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
 
-    _agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
+    if fill_buffer:
+        _agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
+
     return _agent
 
 

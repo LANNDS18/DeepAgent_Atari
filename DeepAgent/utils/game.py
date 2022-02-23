@@ -144,29 +144,24 @@ class StackFrameEnv(gym.Wrapper):
         return LazyFrames(list(self.frames))
 
 
-class ResizeEnv(gym.Wrapper):
+class ResizeEnv(gym.ObservationWrapper):
     def __init__(self, env, output_shape=(84, 84)):
-        self.env = env
-        self.output_shape = output_shape
-        super().__init__(self.env)
-
-    def reset(self):
-        frame = process_frame(self.env.reset(), shape=self.output_shape)
-        return frame
-
-    def step(self, action):
-        """Performs an action and observes the result
-        Arguments:
-            action: An integer describe action the agent chose
-        Returns:
-            next_state: The processed new frame as a result of that action
-            reward: The reward for taking that action
-            done: Whether the test_env has ended
-            info: other information
         """
-        next_state, reward, done, info = self.env.step(action)
-        next_state = process_frame(next_state)
-        return next_state, reward, done, info
+        Warp frames to 84x84 as done in the Nature paper and later work.
+        If the environment uses dictionary observations, `dict_space_key` can be specified which indicates which
+        observation should be warped.
+        """
+        super().__init__(env)
+        new_space = gym.spaces.Box(
+            low=0,
+            high=255,
+            shape=(output_shape[0], output_shape[1], 1),
+            dtype=np.uint8,
+        )
+        self.observation_space = new_space
+
+    def observation(self, obs):
+        return process_frame(obs)
 
 
 class ClipReward(gym.RewardWrapper):
