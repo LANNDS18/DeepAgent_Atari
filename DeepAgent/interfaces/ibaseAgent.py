@@ -32,7 +32,6 @@ class BaseAgent(ABC):
             target_sync_freq=1000,
             saving_model=False,
             log_history=False,
-            model_save_interval=1000,
             quiet=False,
     ):
         self.env = env
@@ -52,8 +51,8 @@ class BaseAgent(ABC):
         self.state = self.env.reset()
         self.done = False
 
-        self.best_mean_reward = 0
-        self.mean_reward = 0
+        self.best_mean_reward = -float('inf')
+        self.mean_reward = -float('inf')
         self.episode_reward = 0
 
         self.total_step = 0
@@ -65,7 +64,6 @@ class BaseAgent(ABC):
         self.last_reset_time = None
         self.frame_speed = 0
 
-        self.model_save_interval = model_save_interval
         self.model_update_freq = model_update_freq
         self.target_sync_freq = target_sync_freq
 
@@ -119,17 +117,19 @@ class BaseAgent(ABC):
         Save model weight to checkpoint
         """
         if self.saving_model:
-            print('Saving Weights...')
+            self.display_message('Saving Weights...')
             self.model.save_weights(self.saving_path + '/main/')
             self.target_model.save_weights(self.saving_path + '/target/')
+            self.display_message(f'Successfully saving to {self.saving_path}')
 
     def load_model(self):
         """
         Load model weight from saving_path
         """
-        print('Loading Weights...')
+        self.display_message('Loading Weights...')
         self.model.load_weights(self.saving_path + '/main/')
         self.target_model.load_weights(self.saving_path + '/target/')
+        self.display_message(f'Loaded from {self.saving_path}')
 
     def display_learning_state(self):
         """
@@ -196,9 +196,6 @@ class BaseAgent(ABC):
             if self.saving_model:
                 self.update_history()
 
-        if self.episode % self.model_save_interval == 0 and self.saving_model:
-            self.update_history()
-
     def fill_buffer(self, fill_size=20000):
         """
         Fill replay buffer up to its initial size.
@@ -255,11 +252,13 @@ class BaseAgent(ABC):
         """
         if self.max_steps and self.total_step >= self.max_steps:
             self.display_message(f'Maximum total_step exceeded')
+            self.saving_path = self.saving_path + '/end'
+            self.history_dict_path = self.saving_path + '/history_check_point.json'
             self.update_history()
             return True
         return False
 
-    def update_history(self):
+    def update_history(self, model=True):
         """
         Write 1 episode stats to checkpoint and write model when it crosses interval.
         """
@@ -272,7 +271,8 @@ class BaseAgent(ABC):
             'episode': [self.episode]
         }
         write_from_dict(data, path=self.history_dict_path)
-        self.save_model()
+        if model:
+            self.save_model()
 
     def load_history_from_path(self):
         """
@@ -360,7 +360,6 @@ class BaseAgent(ABC):
             video_dir=None,
             frame_delay=0.0,
             max_episode=100,
-            frame_frequency=1,
     ):
         """
         Play and display a test_env.
@@ -371,7 +370,6 @@ class BaseAgent(ABC):
             render: If True, the test_env will be displayed.
             frame_delay: Delay between rendered frames.
             max_episode: Maximum environment episode.
-            frame_frequency: If frame_dir is specified, save frames every n frames.
         """
         self.saving_path = saving_path
         self.load_model()

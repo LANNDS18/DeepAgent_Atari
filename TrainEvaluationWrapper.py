@@ -30,7 +30,6 @@ def trainWrapper(env, buffer, network, agent, train_id, fill_buffer=True):
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
         saving_model=SAVING_MODEL,
         log_history=LOG_HISTORY,
-        model_save_interval=MODEL_SAVE_INTERVAL
     )
 
     assert isinstance(_agent, ibaseAgent.BaseAgent)
