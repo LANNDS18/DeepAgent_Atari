@@ -171,20 +171,13 @@ class ClipReward(gym.RewardWrapper):
     """
     def __init__(self, env):
         super(ClipReward, self).__init__(env)
-        self.done = False
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        self.done = done
         return observation, self.reward(reward), done, info
 
     def reward(self, reward):
-        if self.done:
-            return -1
-        if reward <= 0:
-            return np.sign(reward)
-        else:
-            return np.sign(reward)/5
+        return np.sign(reward)
 
 
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), train=True):
