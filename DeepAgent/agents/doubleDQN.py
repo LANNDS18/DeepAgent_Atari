@@ -24,27 +24,30 @@ class DoubleDQNAgent(DQNAgent):
         super(DoubleDQNAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
 
     @tf.function
-    def update_main_model(self, states, actions, rewards, dones, new_states):
+    def update_gradient(self, states, actions, rewards, dones, next_states):
         """Update main q network by experience replay method.
+
         Args:
             states (tf.float32): Batch of states.
             actions (tf.int32): Batch of actions.
             rewards (tf.float32): Batch of rewards.
+            next_states (tf.float32): Batch of next states.
             dones (tf.bool): Batch or terminal status.
-            new_states (tf.float32): Batch of next states.
+
         Returns:
             loss (tf.float32): Huber loss of temporal difference.
         """
-        q_online = self.model(new_states)
-        action_q_online = tf.math.argmax(q_online, axis=1)
-
-        q_target = self.target_model(new_states)
-        double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0), axis=1)
 
         with tf.GradientTape() as tape:
-            # Double Q Equation #
-            target_q = rewards + self.gamma * double_q * (
-                    1.0 - tf.cast(dones, tf.float32))
+            action_q_online = tf.math.argmax(
+                self.model(next_states), axis=1)
+
+            q_target = self.target_model(next_states)
+
+            double_q = tf.reduce_sum(
+                q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0), axis=1)
+
+            target_q = rewards + self.gamma * double_q * (1.0 - tf.cast(dones, tf.float32))
             main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0), axis=1)
             loss = self.loss(tf.stop_gradient(target_q), main_q)
 

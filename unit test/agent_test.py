@@ -28,7 +28,6 @@ def test_d3qn_with_batch_1():
                            epsilon_end=EPSILON_END,
                            epsilon_decay_steps=EPSILON_DECAY_STEPS, )
 
-    agent.fill_buffer()
     agent.learn(max_steps=100)
 
 
@@ -77,9 +76,7 @@ def test_per_d3n_with_wrong_buffer():
         log_history=True,
         model_save_interval=MODEL_SAVE_INTERVAL
     )
-
-    agent.fill_buffer()
-    agent.learn(max_steps=TRAINING_STEP)
+    agent.learn(max_steps=1e4)
 
 
 def test_per_d3n():
@@ -110,9 +107,7 @@ def test_per_d3n():
         log_history=False,
         model_save_interval=MODEL_SAVE_INTERVAL
     )
-
-    agent.fill_buffer()
-    agent.learn(max_steps=TRAINING_STEP)
+    agent.learn(max_steps=1e4)
 
 
 if __name__ == '__main__':

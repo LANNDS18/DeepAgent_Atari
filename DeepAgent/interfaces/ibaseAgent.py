@@ -1,3 +1,4 @@
+import copy
 import os
 import gym
 import numpy as np
@@ -24,6 +25,7 @@ class BaseAgent(ABC):
             model,
             buffer,
             agent_id,
+            replay_start_size=20000,
             mean_reward_step=100,
             gamma=0.99,
             frame_stack=4,
@@ -42,6 +44,7 @@ class BaseAgent(ABC):
         self.input_shape = self.env.observation_space.shape
 
         self.buffer = buffer
+        self.replay_start_size = replay_start_size
         self.mean_reward_buffer = deque(maxlen=mean_reward_step)
         self.mean_reward_step = mean_reward_step
 
@@ -67,12 +70,10 @@ class BaseAgent(ABC):
         self.model_update_freq = model_update_freq
         self.target_sync_freq = target_sync_freq
 
-        self.model = model
+        self.model = copy.deepcopy(model)
+        self.target_model = copy.deepcopy(model)
 
-        self.target_model = tf.keras.models.clone_model(self.model)
-        self.target_model.set_weights(self.model.get_weights())
-
-        self.optimizer = self.model.optimizer if optimizer is None else optimizer
+        self.optimizer = model.optimizer if optimizer is None else optimizer
 
         self.loss = tf.keras.losses.Huber()
         self.loss_metric = tf.keras.metrics.Mean('loss_metric', dtype=tf.float32)
@@ -89,6 +90,7 @@ class BaseAgent(ABC):
             self.history_dict_path = self.saving_path + '/history_check_point.json'
         if self.log_history:
             self.train_log_dir = './log/' + agent_id + '_' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.summary_writer = tf.summary.create_file_writer(self.train_log_dir)
 
         self.reset_env()
 
@@ -196,7 +198,7 @@ class BaseAgent(ABC):
             if self.saving_model:
                 self.update_history()
 
-    def fill_buffer(self, fill_size=20000):
+    def fill_buffer(self, fill_size=20000, load=False):
         """
         Fill replay buffer up to its initial size.
         """
@@ -204,7 +206,11 @@ class BaseAgent(ABC):
         buffer = self.buffer
         state = self.env.reset()
         while buffer.current_size < fill_size:
-            action = self.env.action_space.sample()
+            if not load:
+                action = self.env.action_space.sample()
+            else:
+                state = tf.expand_dims(state, axis=0)
+                action = np.argmax(self.model(state))
             new_state, reward, done, _ = self.env.step(action)
             buffer.append(state, action, reward, done, new_state)
             state = new_state
@@ -222,9 +228,8 @@ class BaseAgent(ABC):
 
     def record_tensorboard(self):
         step = self.episode
-        train_summary_writer = tf.summary.create_file_writer(self.train_log_dir)
-        with train_summary_writer.as_default():
-            tf.summary.scalar('Moving Average Reward (100 Episode)', self.mean_reward, step=step)
+        with self.summary_writer.as_default():
+            tf.summary.scalar('Average Reward (100 Episode Moving Average)', self.mean_reward, step=step)
             tf.summary.scalar('Average Q', self.q_metric.result(), step=step)
             tf.summary.scalar('Episode Reward', self.episode_reward, step=step)
             tf.summary.scalar('Loss', self.loss_metric.result(), step=step)
@@ -253,6 +258,7 @@ class BaseAgent(ABC):
         if self.max_steps and self.total_step >= self.max_steps:
             self.display_message(f'Maximum total_step exceeded')
             self.saving_path = self.saving_path + '/end'
+            os.makedirs(self.saving_path, exist_ok=True)
             self.history_dict_path = self.saving_path + '/history_check_point.json'
             self.update_history()
             return True
@@ -278,20 +284,19 @@ class BaseAgent(ABC):
         """
         Load previous training session metadata and update agent metrics to go from there.
         """
-        if Path(self.history_dict_path).is_file():
-            # Load model from checkpoint
-            self.load_model()
-            # Load training data from json
-            previous_history = pd.read_json(self.history_dict_path).to_dict()
-            self.mean_reward = previous_history['mean_reward'][0]
-            self.best_mean_reward = previous_history['best_mean_reward'][0]
-            history_start_steps = previous_history['step'][0]
-            history_start_time = previous_history['time'][0]
-            self.training_start_time = perf_counter() - history_start_time
-            self.last_reset_step = self.total_step = int(history_start_steps)
-            self.episode = previous_history['episode'][0]
-            for i in range(self.episode):
-                self.mean_reward_buffer.append(self.mean_reward)
+        # Load model from checkpoint
+        self.load_model()
+        # Load training data from json
+        previous_history = pd.read_json(self.history_dict_path).to_dict()
+        self.mean_reward = previous_history['mean_reward'][0]
+        self.best_mean_reward = previous_history['best_mean_reward'][0]
+        history_start_steps = previous_history['step'][0]
+        history_start_time = previous_history['time'][0]
+        self.training_start_time = perf_counter() - history_start_time
+        self.last_reset_step = self.total_step = int(history_start_steps)
+        self.episode = previous_history['episode'][0]
+        for i in range(self.episode):
+            self.mean_reward_buffer.append(self.mean_reward)
 
     def init_training(self, max_steps):
         """
@@ -307,13 +312,15 @@ class BaseAgent(ABC):
         self.done = False
         self.last_reset_time = perf_counter()
         self.training_start_time = perf_counter()
-        if self.saving_model:
+        load = False
+        if self.saving_model and Path(self.history_dict_path).is_file():
+            self.display_message(f'Load history from {self.history_dict_path}')
+            load = True
             self.load_history_from_path()
         else:
             self.total_step = 0
             self.episode = 1
-
-        self.model.compile(self.optimizer)
+        self.fill_buffer(fill_size=self.replay_start_size, load=load)
 
     def train_step(self):
         """

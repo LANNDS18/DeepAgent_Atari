@@ -38,13 +38,23 @@ class DQNAgent(BaseAgent):
         self.epsilon_end = epsilon_end
         self.epsilon_decay_steps = epsilon_decay_steps
 
-    def update_epsilon(self):
+    def update_epsilon(self, terminal_factor=25, terminal_epsilon=0.02):
         """
         Decrement epsilon which aims to gradually reduce randomization.
         """
-        self.epsilon = max(
-            self.epsilon_end, self.epsilon_start - self.total_step / self.epsilon_decay_steps
-        )
+        if self.buffer.current_size < self.replay_start_size:
+            return
+        if self.total_step <= self.epsilon_decay_steps:
+            self.epsilon = max(
+                self.epsilon_end, self.epsilon_start - self.total_step / self.epsilon_decay_steps
+            )
+            return
+        elif self.epsilon_decay_steps <= self.total_step < terminal_factor * self.max_steps:
+            self.epsilon = (terminal_epsilon - self.epsilon_end) / (
+                    terminal_factor * self.max_steps - self.epsilon_decay_steps) * (
+                                   self.total_step - self.epsilon_decay_steps) + self.epsilon_end
+        else:
+            self.epsilon = terminal_epsilon
 
     @tf.function
     def get_action(self, state, epsilon):
@@ -57,21 +67,21 @@ class DQNAgent(BaseAgent):
         Returns:
             action (tf.int32): Action index
         """
-        recent_state = tf.expand_dims(state, axis=0)
+        state = tf.expand_dims(state, axis=0)
         if tf.random.uniform((), minval=0, maxval=1, dtype=tf.float32) < epsilon:
             action = tf.random.uniform((), minval=0, maxval=self.n_actions, dtype=tf.int32)
         else:
-            q_value = self.model(tf.cast(recent_state, tf.float32))
+            q_value = self.model(tf.cast(state, tf.float32))
             action = tf.cast(tf.squeeze(tf.math.argmax(q_value, axis=1)), dtype=tf.int32)
         return action
 
     @tf.function
     def sync_target_model(self):
-        """Synchronize weights of target network by those of main network."""
-        main_vars = self.model.trainable_variables
-        target_vars = self.target_model.trainable_variables
-        for main_var, target_var in zip(main_vars, target_vars):
-            target_var.assign(main_var)
+        """
+        Sync target model weights with main's
+        """
+        if self.total_step % self.target_sync_freq == 0:
+            self.target_model.set_weights(self.model.get_weights())
 
     def at_step_start(self):
         """
@@ -80,14 +90,14 @@ class DQNAgent(BaseAgent):
         self.update_epsilon()
 
     @tf.function
-    def update_main_model(self, states, actions, rewards, dones, new_states):
+    def update_gradient(self, states, actions, rewards, dones, next_states):
         """Update main q network by experience replay method.
 
         Args:
             states (tf.float32): Batch of states.
             actions (tf.int32): Batch of actions.
             rewards (tf.float32): Batch of rewards.
-            new_states (tf.float32): Batch of next states.
+            next_states (tf.float32): Batch of next states.
             dones (tf.bool): Batch or terminal status.
 
         Returns:
@@ -95,13 +105,13 @@ class DQNAgent(BaseAgent):
         """
 
         with tf.GradientTape() as tape:
-            next_state_q = self.target_model(new_states)
+            next_state_q = self.target_model(next_states)
             next_state_max_q = tf.math.reduce_max(next_state_q, axis=1)
-            expected_q = rewards + self.gamma * next_state_max_q * (
-                    1.0 - tf.cast(dones, tf.float32))
+            expected_q = rewards + self.gamma * next_state_max_q * (1.0 - tf.cast(dones, tf.float32))
+
             main_q = tf.reduce_sum(
-                self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
-                axis=1)
+                self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0), axis=1)
+
             loss = self.loss(tf.stop_gradient(expected_q), main_q)
 
         gradients = tape.gradient(loss, self.model.trainable_variables)
@@ -124,14 +134,14 @@ class DQNAgent(BaseAgent):
         self.state = next_state
         self.done = done
 
-        if self.total_step % self.model_update_freq == 0:
+        if self.total_step % self.model_update_freq == 0 and self.buffer.current_size >= self.replay_start_size:
             indices = self.buffer.get_sample_indices()
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
 
-            self.update_main_model(states, actions, rewards, dones, next_states)
+            self.update_gradient(states, actions, rewards, dones, next_states)
 
     def at_step_end(self):
-        if self.total_step % self.target_sync_freq == 0:
+        if self.total_step % self.target_sync_freq == 0 and self.buffer.current_size >= self.replay_start_size:
             self.sync_target_model()
         self.total_step += 1
         self.env.render()

@@ -3,7 +3,7 @@ from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibaseNN
 from gym import Wrapper
 
 
-def trainWrapper(env, buffer, network, agent, train_id, fill_buffer=True):
+def trainWrapper(env, buffer, network, agent, train_id):
     _env = env(env_name=ENV_NAME,
                output_shape=IMAGE_SHAPE,
                frame_stack=FRAME_STACK,
@@ -25,6 +25,7 @@ def trainWrapper(env, buffer, network, agent, train_id, fill_buffer=True):
         model=_network,
         buffer=_buffer,
         gamma=GAMMA,
+        replay_start_size=REPLAY_START_SIZE,
         epsilon_start=EPSILON_START,
         epsilon_end=EPSILON_END,
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
@@ -36,9 +37,6 @@ def trainWrapper(env, buffer, network, agent, train_id, fill_buffer=True):
     assert isinstance(network(), ibaseNN.BaseNN)
     assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
-
-    if fill_buffer:
-        _agent.fill_buffer(fill_size=FILL_BUFFER_SIZE)
 
     return _agent
 

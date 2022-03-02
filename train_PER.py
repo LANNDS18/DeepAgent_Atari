@@ -13,4 +13,4 @@ if __name__ == '__main__':
         agent=D3NPERAgent,
         train_id='D3N_PER_v1')
 
-    agent.learn(max_steps=TRAINING_STEP)
+    agent.learn(max_steps=int(10e6))

@@ -27,7 +27,7 @@ class D3NPERAgent(DQNAgent):
             'The buffer should be a PrioritizedExperienceReplay buffer.'
 
     @tf.function
-    def update_main_model(self, states, actions, rewards, dones, new_states):
+    def update_gradient(self, states, actions, rewards, dones, new_states):
         """Update main q network by experience replay method.
         Args:
             states (tf.float32): Batch of states.
@@ -78,6 +78,6 @@ class D3NPERAgent(DQNAgent):
             indices = self.buffer.get_sample_indices()
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
 
-            main_q, target_q = self.update_main_model(states, actions, rewards, dones, next_states)
+            main_q, target_q = self.update_gradient(states, actions, rewards, dones, next_states)
             abs_error = abs(main_q - target_q)
             self.buffer.update_priorities(indices, abs_error)

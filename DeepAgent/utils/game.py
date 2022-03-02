@@ -170,13 +170,17 @@ class ClipReward(gym.RewardWrapper):
         Therefore, clip reward in [-1, 1] scale then lower the reward which is positive
     """
     def __init__(self, env):
+        self.done = None
         super(ClipReward, self).__init__(env)
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
+        self.done = done
         return observation, self.reward(reward), done, info
 
     def reward(self, reward):
+        if self.done:
+            reward = -1
         return np.sign(reward)
 
 
