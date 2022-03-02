@@ -31,7 +31,7 @@ class BaseAgent(ABC):
             frame_stack=4,
             optimizer=None,
             model_update_freq=4,
-            target_sync_freq=1000,
+            target_sync_freq=10000,
             saving_model=False,
             log_history=False,
             quiet=False,
@@ -209,8 +209,7 @@ class BaseAgent(ABC):
             if not load:
                 action = self.env.action_space.sample()
             else:
-                state = tf.expand_dims(state, axis=0)
-                action = np.argmax(self.model(state))
+                action = np.argmax(self.model(tf.expand_dims(state, axis=0)))
             new_state, reward, done, _ = self.env.step(action)
             buffer.append(state, action, reward, done, new_state)
             state = new_state

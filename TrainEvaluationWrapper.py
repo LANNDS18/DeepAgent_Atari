@@ -29,6 +29,7 @@ def trainWrapper(env, buffer, network, agent, train_id):
         epsilon_start=EPSILON_START,
         epsilon_end=EPSILON_END,
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
+        target_sync_freq=TARGET_SYNC_FREQ,
         saving_model=SAVING_MODEL,
         log_history=LOG_HISTORY,
     )

@@ -38,7 +38,7 @@ class DQNAgent(BaseAgent):
         self.epsilon_end = epsilon_end
         self.epsilon_decay_steps = epsilon_decay_steps
 
-    def update_epsilon(self, terminal_factor=25, terminal_epsilon=0.02):
+    def update_epsilon(self, terminal_factor=15, terminal_epsilon=0.02):
         """
         Decrement epsilon which aims to gradually reduce randomization.
         """
@@ -77,11 +77,11 @@ class DQNAgent(BaseAgent):
 
     @tf.function
     def sync_target_model(self):
-        """
-        Sync target model weights with main's
-        """
-        if self.total_step % self.target_sync_freq == 0:
-            self.target_model.set_weights(self.model.get_weights())
+        """Synchronize weights of target network by those of main network."""
+        main_vars = self.model.trainable_variables
+        target_vars = self.target_model.trainable_variables
+        for main_var, target_var in zip(main_vars, target_vars):
+            target_var.assign(main_var)
 
     def at_step_start(self):
         """
@@ -142,6 +142,7 @@ class DQNAgent(BaseAgent):
 
     def at_step_end(self):
         if self.total_step % self.target_sync_freq == 0 and self.buffer.current_size >= self.replay_start_size:
+            self.display_message("Synchronizing target model...")
             self.sync_target_model()
         self.total_step += 1
         self.env.render()

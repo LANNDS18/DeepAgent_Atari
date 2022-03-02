@@ -185,18 +185,16 @@ class ClipReward(gym.RewardWrapper):
 
 
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), train=True):
-    assert 'NoFrameskip' in env_name
     env = gym.make(env_name)
+    assert 'NoFrameskip' in env.spec.id
     env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
-
     if train:
         env = EpisodicLifeEnv(env)
         env = ClipReward(env)
-
-    env = ResizeEnv(env, output_shape=output_shape)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = PendingFire(env)
+    env = ResizeEnv(env, output_shape=output_shape)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
     return env
