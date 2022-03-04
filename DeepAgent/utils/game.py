@@ -158,10 +158,11 @@ class ResizeEnv(gym.ObservationWrapper):
             shape=(output_shape[0], output_shape[1], 1),
             dtype=np.uint8,
         )
+        self.output_shape = output_shape
         self.observation_space = new_space
 
     def observation(self, obs):
-        return process_frame(obs)
+        return process_frame(obs, shape=self.output_shape)
 
 
 class ClipReward(gym.RewardWrapper):
@@ -204,10 +205,9 @@ class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
     def __init__(self, env_name, output_shape=(84, 84), frame_stack=4, train=True):
-        env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=(84, 84), train=train)
+        env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=output_shape, train=train)
         self.id = env_name
         self.env = env
-        self.output_shape = output_shape
         super().__init__(env)
 
     def reset(self):

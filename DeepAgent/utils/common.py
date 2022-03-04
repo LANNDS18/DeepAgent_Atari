@@ -49,17 +49,20 @@ def write_from_dict(_dict, path):
         json.dump(_dict, fp)
 
 
-def process_frame(frame, shape=(84, 84)):
+def process_frame(frame, shape=(84, 84), crop=(15, -20)):
     """
     Preprocesses a 210x160x3 frame to 84x84x1 grayscale
     Arguments:
-        shape:
+        shape: The output shape
+        crop: The top and bottom boundary for crop
         frame: The frame to process.  Must have values ranging from 0-255
     Returns:
         The processed frame
     """
     frame = frame.astype(np.uint8)  # cv2 requires np.uint8, other dtypes will not work
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    if crop:
+        frame = frame[crop[0]:crop[1], :]
     frame = cv2.resize(frame, shape)
     frame = frame.reshape(*shape, -1)
     return frame

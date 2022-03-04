@@ -38,7 +38,7 @@ class DQNAgent(BaseAgent):
         self.epsilon_end = epsilon_end
         self.epsilon_decay_steps = epsilon_decay_steps
 
-    def update_epsilon(self, terminal_factor=15, terminal_epsilon=0.02):
+    def update_epsilon(self, terminal_factor=3, terminal_epsilon=0.02):
         """
         Decrement epsilon which aims to gradually reduce randomization.
         """
