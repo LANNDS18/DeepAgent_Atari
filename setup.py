@@ -12,11 +12,12 @@ setup(
 
     python_requires='>=3.8',
     install_requires=[
+        'tensorflow-macos',
+        'keras',
         'termcolor',
         'pandas',
         'jupyter',
         'matplotlib',
-        'tensorflow-macos',
         'gym',
         'numpy',
         'opencv-python'

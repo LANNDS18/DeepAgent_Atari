@@ -1,8 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras.initializers import VarianceScaling
-from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Add, Lambda, Subtract
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+from keras.initializers.initializers_v2 import VarianceScaling
+from keras.layers import Conv2D, Dense, Flatten, Input, Add, Lambda, Subtract
+from keras.models import Model
+from keras.optimizers import rmsprop_v2
 from DeepAgent.interfaces.ibaseNN import BaseNN
 
 
@@ -36,11 +36,10 @@ class DuelingNetwork(BaseNN):
         advantage_output = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.))(x)
         reduce_mean = Lambda(lambda w: tf.reduce_mean(w, axis=1, keepdims=True))
 
-        x = Add()([value_output, Subtract()([advantage_output, reduce_mean(advantage_output)])])
-        output = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.0), activation="linear")(x)
+        output = Add()([value_output, Subtract()([advantage_output, reduce_mean(advantage_output)])])
 
         model = Model(model_input, output)
-        optimizer = Adam(learning_rate=learning_rate, epsilon=1e-6)
+        optimizer = rmsprop_v2.RMSprop(learning_rate, decay=0.95, momentum=0.95, epsilon=1e-2)
         model.compile(optimizer)
         model.summary()
 

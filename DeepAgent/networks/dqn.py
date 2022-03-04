@@ -1,7 +1,7 @@
-from tensorflow.keras.initializers import VarianceScaling
-from tensorflow.keras.layers import Conv2D, Dense, Flatten, Input, Lambda
-from tensorflow.keras.models import Model
-from tensorflow.keras.optimizers import Adam
+from keras.initializers.initializers_v2 import VarianceScaling
+from keras.layers import Conv2D, Dense, Flatten, Input, Lambda
+from keras.models import Model
+from keras.optimizers import rmsprop_v2
 from DeepAgent.interfaces.ibaseNN import BaseNN
 
 
@@ -33,7 +33,7 @@ class DQNNetwork(BaseNN):
 
         output = Dense(n_actions, kernel_initializer=VarianceScaling(scale=2.0), activation="linear")(x)
         model = Model(model_input, output)
-        optimizer = Adam(learning_rate=learning_rate, epsilon=1e-6)
+        optimizer = rmsprop_v2.RMSprop(learning_rate, decay=0.95, momentum=0.95, epsilon=1e-2)
         model.compile(optimizer)
         model.summary()
 
