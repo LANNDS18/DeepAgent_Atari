@@ -3,7 +3,7 @@ from time import perf_counter
 
 import pandas as pd
 
-from DeepAgent.networks.dueling import DuelingNetwork
+from DeepAgent.policy.dueling import DuelingNetwork
 from DeepAgent.utils.buffer import ExperienceReplay, PrioritizedExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from DeepAgent.agents.doubleDQN import DoubleDQNAgent

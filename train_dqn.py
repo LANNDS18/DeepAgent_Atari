@@ -1,4 +1,4 @@
-from DeepAgent.networks.cnnPolicy import DeepQNetwork
+from DeepAgent.policy.cnnPolicy import CNN
 from DeepAgent.agents.baseDQN import DQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
@@ -7,7 +7,7 @@ from TrainEvaluationWrapper import trainWrapper
 if __name__ == '__main__':
     agent = trainWrapper(GameEnv,
                          ExperienceReplay,
-                         DeepQNetwork,
+                         CNN,
                          DQNAgent,
                          'DQN_v1')
 

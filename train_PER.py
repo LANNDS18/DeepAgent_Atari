@@ -1,4 +1,4 @@
-from DeepAgent.networks.dueling import DuelingNetwork
+from DeepAgent.policy.dueling import DuelingNetwork
 from DeepAgent.utils.buffer import PrioritizedExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from DeepAgent.agents.d3nPER import D3NPERAgent

@@ -1,16 +1,15 @@
-from DeepAgent.networks.dueling import DuelingNetwork
-from DeepAgent.agents.doubleDQN import DoubleDQNAgent
+from DeepAgent.policy.duelingPolicy import Dueling
+from DeepAgent.agents.baseDQN import DQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from TrainEvaluationWrapper import trainWrapper
-from config import *
 
 if __name__ == '__main__':
     agent = trainWrapper(
         env=GameEnv,
         buffer=ExperienceReplay,
-        network=DuelingNetwork,
-        agent=DoubleDQNAgent,
-        train_id='DDDQN_v1')
+        network=Dueling,
+        agent=DQNAgent,
+        train_id='DDDQN_v2')
 
-    agent.learn(max_steps=TRAINING_STEP)
+    agent.learn(max_steps=1e7)

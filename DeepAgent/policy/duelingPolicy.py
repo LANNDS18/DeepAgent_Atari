@@ -6,10 +6,10 @@ from keras.optimizers import rmsprop_v2
 from keras.layers import Input, Conv2D, Flatten, Dense, Lambda
 from keras.initializers.initializers_v2 import VarianceScaling
 
-from DeepAgent.networks.cnnPolicy import DeepQNetwork
+from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
 
 
-class Dueling(DeepQNetwork):
+class Dueling(BaseNNPolicy):
 
     def __init__(self,
                  conv_layers=None,
@@ -23,16 +23,16 @@ class Dueling(DeepQNetwork):
                  one_step_weight=1.0,
                  l2_weight=0.0):
 
-        super(Dueling, self).__init__(conv_layers,
-                                      dense_layers,
-                                      input_shape,
-                                      frame_stack,
-                                      n_actions,
-                                      optimizer,
-                                      lr_schedule,
-                                      loss_function,
-                                      one_step_weight,
-                                      l2_weight)
+        super(Dueling, self).__init__(conv_layers=conv_layers,
+                                      dense_layers=dense_layers,
+                                      input_shape=input_shape,
+                                      frame_stack=frame_stack,
+                                      n_actions=n_actions,
+                                      optimizer=optimizer,
+                                      lr_schedule=lr_schedule,
+                                      loss_function=loss_function,
+                                      one_step_weight=one_step_weight,
+                                      l2_weight=l2_weight)
 
     def build(self):
 
@@ -57,7 +57,7 @@ class Dueling(DeepQNetwork):
                                       use_bias=False
                                       )(conv_input))
 
-        value_stream, advantage_stream = tf.split(self.conv_layers[-1], 2, 3)
+        value_stream, advantage_stream = tf.split(conv_layers[-1], 2, 3)
 
         value_layer = Dense(units=1,
                             kernel_initializer=VarianceScaling(scale=2.0),

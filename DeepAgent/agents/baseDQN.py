@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
-from DeepAgent.interfaces.ibaseAgent import BaseAgent
+from DeepAgent.interfaces.ibaseAgent import OffPolicy
 
 
-class DQNAgent(BaseAgent):
+class DQNAgent(OffPolicy):
 
     def __init__(
             self,
@@ -103,7 +103,7 @@ class DQNAgent(BaseAgent):
         with tf.GradientTape() as tape:
             tape.watch(self.policy_network.model.trainable_weights)
             main_q = tf.reduce_sum(
-                self.policy_network.model(states, training=False) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
+                self.policy_network.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
                 axis=1)
             losses = self.policy_network.loss_function(main_q, target_q) * self.policy_network.one_step_weight
             if self.policy_network.l2_weight > 0:
