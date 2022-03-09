@@ -1,5 +1,12 @@
 from keras.optimizer_v2.adam import Adam
+from keras.optimizer_v2.rmsprop import RMSprop
 from keras.initializers.initializers_v2 import VarianceScaling
+
+
+def pong_crop(x): return x[25:-5, :]
+
+
+def demon_attack_crop(x): return x[25:-5, :]
 
 
 class PongConfig:
@@ -9,8 +16,7 @@ class PongConfig:
     ENV_NAME = 'PongNoFrameskip-v4'
     FRAME_STACK = 4
     IMAGE_SHAPE = (84, 84)
-    pong_crop = lambda x: x[25:-5, :]
-    demon_attack_crop = lambda x: x[20:-20, :]
+
     CROP = pong_crop
 
     '''
@@ -27,15 +33,15 @@ class PongConfig:
     }
 
     LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
-    OPTIMIZER = Adam
-    ONE_STEP_WEIGHT = 1
+    OPTIMIZER = RMSprop
+    ONE_STEP_WEIGHT = 0.8
 
     """
     Buffer Parameters
     """
     BUFFER_SIZE = 300000
     BATCH_SIZE = 32
-    WARM_UP_EPISODE = 5
+    WARM_UP_EPISODE = 100
 
     """
     Agent Parameters
@@ -64,9 +70,7 @@ class DemonAttackConfig:
     ENV_NAME = 'PongNoFrameskip-v4'
     FRAME_STACK = 4
     IMAGE_SHAPE = (84, 84)
-    pong_crop = lambda x: x[25:-5, :]
-    demon_attack_crop = lambda x: x[20:-20, :]
-    CROP = pong_crop
+    CROP = demon_attack_crop
 
     '''
     Network Parameters

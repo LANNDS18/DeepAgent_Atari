@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import json
+import matplotlib.pyplot as plt
 
 
 class LazyFrames(object):
@@ -66,3 +67,13 @@ def process_frame(frame, shape=(84, 84), crop=None):
     frame = cv2.resize(frame, shape)
     frame = frame.reshape(*shape, -1)
     return frame
+
+
+# plot reward
+def plot_rewards(rewards, title):
+    plt.figure(figsize=(10, 5))
+    plt.plot(rewards)
+    plt.xlabel('episode')
+    plt.ylabel('reward')
+    plt.title(title)
+    plt.show()
