@@ -1,43 +1,45 @@
-from config import *
 from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibasePolicy
 from gym import Wrapper
-
 import tensorflow as tf
 
-if GPU:
-    physical_devices = tf.config.experimental.list_physical_devices('GPU')
-    assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
-    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+
+def use_gpu(use=False):
+    if use:
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+        tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 
-def trainWrapper(env, buffer, network, agent, train_id):
-    _env = env(env_name=ENV_NAME,
-               output_shape=IMAGE_SHAPE,
-               frame_stack=FRAME_STACK,
+def trainWrapper(config, env, buffer, network, agent, train_id):
+    use_gpu(config.USE_GPU)
+
+    _env = env(env_name=config.ENV_NAME,
+               output_shape=config.IMAGE_SHAPE,
+               frame_stack=config.FRAME_STACK,
                train=True,
-               crop=CROP)
+               crop=config.CROP)
 
-    _buffer = buffer(size=BUFFER_SIZE,
-                     batch_size=BATCH_SIZE)
+    _buffer = buffer(size=config.BUFFER_SIZE,
+                     batch_size=config.BATCH_SIZE)
 
-    _policy = network(conv_layers=CONV_LAYERS,
+    _policy = network(conv_layers=config.CONV_LAYERS,
                       dense_layers=None,
-                      input_shape=IMAGE_SHAPE,
-                      frame_stack=FRAME_STACK,
+                      input_shape=config.IMAGE_SHAPE,
+                      frame_stack=config.FRAME_STACK,
                       n_actions=_env.action_space.n,
-                      optimizer=OPTIMIZER,
-                      lr_schedule=LEARNING_RATE,
-                      one_step_weight=ONE_STEP_WEIGHT,
+                      optimizer=config.OPTIMIZER,
+                      lr_schedule=config.LEARNING_RATE,
+                      one_step_weight=config.ONE_STEP_WEIGHT,
                       l2_weight=0.0)
 
-    _target = network(conv_layers=CONV_LAYERS,
+    _target = network(conv_layers=config.CONV_LAYERS,
                       dense_layers=None,
-                      input_shape=IMAGE_SHAPE,
-                      frame_stack=FRAME_STACK,
+                      input_shape=config.IMAGE_SHAPE,
+                      frame_stack=config.FRAME_STACK,
                       n_actions=_env.action_space.n,
-                      optimizer=OPTIMIZER,
-                      lr_schedule=LEARNING_RATE,
-                      one_step_weight=ONE_STEP_WEIGHT,
+                      optimizer=config.OPTIMIZER,
+                      lr_schedule=config.LEARNING_RATE,
+                      one_step_weight=config.ONE_STEP_WEIGHT,
                       l2_weight=0.0)
 
     _agent = agent(
@@ -46,12 +48,12 @@ def trainWrapper(env, buffer, network, agent, train_id):
         policy_network=_policy,
         target_network=_target,
         buffer=_buffer,
-        gamma=GAMMA,
-        warm_up_episode=WARM_UP_EPISODE,
-        eps_schedule=EPS_SCHEDULE,
-        target_sync_freq=TARGET_SYNC_FREQ,
-        saving_model=SAVING_MODEL,
-        log_history=LOG_HISTORY,
+        gamma=config.GAMMA,
+        warm_up_episode=config.WARM_UP_EPISODE,
+        eps_schedule=config.EPS_SCHEDULE,
+        target_sync_freq=config.TARGET_SYNC_FREQ,
+        saving_model=config.SAVING_MODEL,
+        log_history=config.LOG_HISTORY,
     )
 
     assert isinstance(_agent, ibaseAgent.OffPolicy)
@@ -62,31 +64,31 @@ def trainWrapper(env, buffer, network, agent, train_id):
     return _agent
 
 
-def testWrapper(agent, env, network, buffer, test_id):
-    _env = env(env_name=ENV_NAME,
-               output_shape=IMAGE_SHAPE,
-               frame_stack=FRAME_STACK,
-               crop=CROP,
+def testWrapper(config, agent, env, network, buffer, test_id):
+    _env = env(env_name=config.ENV_NAME,
+               output_shape=config.IMAGE_SHAPE,
+               frame_stack=config.FRAME_STACK,
+               crop=config.CROP,
                train=False)
-    _buffer = buffer(size=TEST_BUFFER_SIZE, batch_size=TEST_BATCH_SIZE)
+    _buffer = buffer(size=config.TEST_BUFFER_SIZE, batch_size=config.TEST_BATCH_SIZE)
 
-    _policy = network(conv_layers=CONV_LAYERS,
+    _policy = network(conv_layers=config.CONV_LAYERS,
                       dense_layers=None,
-                      input_shape=IMAGE_SHAPE,
-                      frame_stack=FRAME_STACK,
+                      input_shape=config.IMAGE_SHAPE,
+                      frame_stack=config.FRAME_STACK,
                       n_actions=_env.action_space.n,
-                      optimizer=OPTIMIZER,
-                      lr_schedule=LEARNING_RATE,
+                      optimizer=config.OPTIMIZER,
+                      lr_schedule=config.LEARNING_RATE,
                       one_step_weight=1.0,
                       l2_weight=0.0)
 
-    _target = network(conv_layers=CONV_LAYERS,
+    _target = network(conv_layers=config.CONV_LAYERS,
                       dense_layers=None,
-                      input_shape=IMAGE_SHAPE,
-                      frame_stack=FRAME_STACK,
+                      input_shape=config.IMAGE_SHAPE,
+                      frame_stack=config.FRAME_STACK,
                       n_actions=_env.action_space.n,
-                      optimizer=OPTIMIZER,
-                      lr_schedule=LEARNING_RATE,
+                      optimizer=config.OPTIMIZER,
+                      lr_schedule=config.LEARNING_RATE,
                       one_step_weight=1.0,
                       l2_weight=0.0)
 

@@ -3,12 +3,15 @@ from DeepAgent.agents.baseDQN import DQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from TrainEvaluationWrapper import trainWrapper
+from config import PongConfig, DemonAttackConfig
 
 if __name__ == '__main__':
-    agent = trainWrapper(GameEnv,
-                         ExperienceReplay,
-                         CNN,
-                         DQNAgent,
-                         'DQN_v1')
+    agent = trainWrapper(
+        config=PongConfig,
+        env=GameEnv,
+        buffer=ExperienceReplay,
+        network=CNN,
+        agent=DQNAgent,
+        train_id='DQN_v1')
 
-    agent.learn(max_steps=int(1e7))
+    agent.learn(max_steps=int(1e7), target_reward=20)
