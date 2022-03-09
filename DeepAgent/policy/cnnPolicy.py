@@ -1,39 +1,16 @@
 import tensorflow as tf
-import numpy as np
 
 from keras.models import Model
-from keras.losses import Huber
-from keras.optimizers import rmsprop_v2
 from keras.layers import Input, Conv2D, Flatten, Dense, Lambda
 from keras.initializers.initializers_v2 import VarianceScaling
-
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
 
 
 class CNN(BaseNNPolicy):
 
-    def __init__(self,
-                 conv_layers=None,
-                 dense_layers=None,
-                 input_shape=(84, 84),
-                 frame_stack=4,
-                 n_actions=6,
-                 optimizer=rmsprop_v2.RMSprop,
-                 lr_schedule=None,
-                 loss_function=Huber(reduction=tf.keras.losses.Reduction.NONE),
-                 one_step_weight=1.0,
-                 l2_weight=0.0):
+    def __init__(self, **kwargs):
 
-        super(CNN, self).__init__(conv_layers=conv_layers,
-                                  dense_layers=dense_layers,
-                                  input_shape=input_shape,
-                                  frame_stack=frame_stack,
-                                  n_actions=n_actions,
-                                  optimizer=optimizer,
-                                  lr_schedule=lr_schedule,
-                                  loss_function=loss_function,
-                                  one_step_weight=one_step_weight,
-                                  l2_weight=l2_weight)
+        super(CNN, self).__init__(**kwargs)
 
     def build(self):
 

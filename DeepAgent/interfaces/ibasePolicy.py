@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-from keras.optimizers import rmsprop_v2
+from keras.optimizers import adam_v2
 from keras.initializers.initializers_v2 import VarianceScaling
 from keras.losses import Huber
 from abc import ABC
@@ -15,10 +15,11 @@ class BaseNNPolicy(ABC):
                  input_shape=(84, 84),
                  frame_stack=4,
                  n_actions=6,
-                 optimizer=rmsprop_v2.RMSprop,
+                 optimizer=adam_v2.Adam,
                  lr_schedule=None,
                  loss_function=Huber(reduction=tf.keras.losses.Reduction.NONE),
                  one_step_weight=1.0,
+                 n_step_weight=1.0,
                  l2_weight=0.0,
                  ):
 
@@ -50,6 +51,7 @@ class BaseNNPolicy(ABC):
         self.optimizer = optimizer(learning_rate=lr_schedule[0][0])
         self.loss_function = loss_function
         self.one_step_weight = one_step_weight
+        self.n_step_weight = n_step_weight
         self.l2_weight = l2_weight
 
         self.lr_lag = 0
