@@ -1,10 +1,10 @@
 import numpy as np
 import tensorflow as tf
 
-from DeepAgent.interfaces.ibaseAgent import OffPolicy
+from DeepAgent.interfaces.ibaseAgent import OffPolicy, EpsDecayAgent
 
 
-class DQNAgent(OffPolicy):
+class DQNAgent(OffPolicy, EpsDecayAgent):
 
     def __init__(
             self,
@@ -13,47 +13,27 @@ class DQNAgent(OffPolicy):
             target_network,
             buffer,
             agent_id='DQN',
-            epsilon_start=1.0,
-            epsilon_end=0.02,
-            epsilon_decay_steps=150000,
+            eps_schedule=None,
             **kwargs,
     ):
         """
-        Initialize networks agent.
+        Initialize DQN agent.
         Args:
             env: A gym environment.
             model: tf.keras.models.Model that is expected to be compiled
                 with an optimizer before training starts.
             buffer: A buffer objects
-            epsilon_start: Starting epsilon value which is used to control random exploration.
-                It should be decremented and adjusted according to implementation needs.
-            epsilon_end: End epsilon value which is the minimum exploration rate.
-            epsilon_decay_steps: Number of total_step for epsilon to reach `epsilon_end`
-                from `epsilon_start`,
-            target_sync_steps: Steps to sync target policy_network after each.
             **kwargs: kwargs passed to super classes.
         """
-        super(DQNAgent, self).__init__(env, policy_network, target_network, buffer, agent_id, **kwargs)
-        self.epsilon_start = epsilon_start
-        self.epsilon = epsilon_start
-        self.epsilon_end = epsilon_end
-        self.epsilon_decay_steps = epsilon_decay_steps
+        OffPolicy.__init__(self,
+                           env=env,
+                           policy_network=policy_network,
+                           target_network=target_network,
+                           buffer=buffer,
+                           agent_id=agent_id,
+                           **kwargs)
 
-    def update_epsilon(self, terminal_epsilon=0.02, terminal_factor=4):
-        """
-        Decrement epsilon which aims to gradually reduce randomization.
-        """
-        if self.total_step <= self.epsilon_decay_steps:
-            self.epsilon = max(
-                self.epsilon_end, self.epsilon_start - self.total_step / self.epsilon_decay_steps
-            )
-        elif self.epsilon_decay_steps <= self.total_step < self.max_steps / terminal_factor:
-            self.epsilon = (terminal_epsilon - self.epsilon_end) \
-                           / (self.max_steps / terminal_factor - self.epsilon_decay_steps) \
-                           * (self.total_step - self.epsilon_decay_steps) \
-                           + self.epsilon_end
-        else:
-            self.epsilon = terminal_epsilon
+        EpsDecayAgent.__init__(self, eps_schedule=eps_schedule)
 
     @tf.function
     def get_action(self, state, epsilon):
@@ -81,7 +61,8 @@ class DQNAgent(OffPolicy):
         """
         Execute total_step that will run before self.train_step() which decays epsilon.
         """
-        self.update_epsilon()
+        self.total_step += 1
+        self.update_epsilon(total_step=self.total_step)
 
     @tf.function
     def update_gradient(self, states, actions, rewards, dones, next_states, batch_weights=1):
@@ -139,7 +120,6 @@ class DQNAgent(OffPolicy):
         if self.total_step % self.target_sync_freq == 0:
             self.display_message("Synchronizing target network...")
             self.sync_target_model()
-        self.total_step += 1
         self.env.render()
 
     def learn(

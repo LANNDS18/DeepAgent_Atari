@@ -49,7 +49,7 @@ class OffPolicy(ABC):
         self.mean_reward_step = mean_reward_step
 
         self.gamma = gamma
-        self.epsilon = 0
+        self.epsilon = None
 
         self.state = self.env.reset()
         self.done = False
@@ -172,6 +172,7 @@ class OffPolicy(ABC):
             'speed',
             'mean reward',
             f'best moving avg ({self.mean_reward_step}) reward',
+            'epsilon',
         )
 
         display_values = (
@@ -181,6 +182,7 @@ class OffPolicy(ABC):
             f'{round(self.frame_speed)} step/s',
             self.real_mean_reward,
             self.real_best_mean_reward,
+            self.epsilon,
         )
         display = (
             f'{title}: {value}'
@@ -363,10 +365,11 @@ class OffPolicy(ABC):
                                       f'be implemented by {self.__class__.__name__} subclasses')
 
     def at_step_start(self):
-        pass
+        self.total_step += 1
+        raise NotImplementedError
 
     def at_step_end(self):
-        pass
+        raise NotImplementedError
 
     def play(
             self,
@@ -430,3 +433,26 @@ class OffPolicy(ABC):
         env.close()
         env.__exit__()
         return total_reward
+
+
+class EpsDecayAgent(ABC):
+
+    def __init__(self, eps_schedule=None,):
+        if eps_schedule is None:
+            self.eps_schedule = [[1.0, 0.1, 1000000], [0.1, 0.001, 5000000]]
+        else:
+            self.eps_schedule = eps_schedule
+        self.epsilon = None
+        self.eps_schedule = np.array(eps_schedule)
+        self.eps_schedule[:, 2] = np.cumsum(self.eps_schedule[:, 2])
+        self.eps_lag = 0
+
+    def update_epsilon(self, total_step):
+        if total_step > self.eps_schedule[0, 2] and self.eps_schedule.shape[0] > 1:
+            self.eps_schedule = np.delete(self.eps_schedule, 0, 0)
+            self.eps_lag = total_step
+        max_eps, min_eps, eps_steps = self.eps_schedule[0]
+        epsilon = max_eps - min(1, (total_step - self.eps_lag) / (eps_steps - self.eps_lag)) * (
+                max_eps - min_eps)
+        self.epsilon = epsilon
+        return epsilon
