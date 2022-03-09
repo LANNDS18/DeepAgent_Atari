@@ -1,31 +1,52 @@
 from config import *
-from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibaseNN
+from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibasePolicy
 from gym import Wrapper
+
+import tensorflow as tf
+
+physical_devices = tf.config.experimental.list_physical_devices('GPU')
+assert len(physical_devices) > 0, "Not enough GPU hardware devices available"
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 
 def trainWrapper(env, buffer, network, agent, train_id):
     _env = env(env_name=ENV_NAME,
                output_shape=IMAGE_SHAPE,
                frame_stack=FRAME_STACK,
-               train=True)
+               train=True,
+               crop=CROP)
 
     _buffer = buffer(size=BUFFER_SIZE,
                      batch_size=BATCH_SIZE)
 
-    _network = network().build(
-        n_actions=_env.action_space.n,
-        learning_rate=LEARNING_RATE,
-        input_shape=IMAGE_SHAPE,
-        frame_stack=FRAME_STACK
-    )
+    _policy = network(conv_layers=CONV_LAYERS,
+                      dense_layers=None,
+                      input_shape=IMAGE_SHAPE,
+                      frame_stack=FRAME_STACK,
+                      n_actions=_env.action_space.n,
+                      optimizer=OPTIMIZER,
+                      lr_schedule=LEARNING_RATE,
+                      one_step_weight=ONE_STEP_WEIGHT,
+                      l2_weight=0.0)
+
+    _target = network(conv_layers=CONV_LAYERS,
+                      dense_layers=None,
+                      input_shape=IMAGE_SHAPE,
+                      frame_stack=FRAME_STACK,
+                      n_actions=_env.action_space.n,
+                      optimizer=OPTIMIZER,
+                      lr_schedule=LEARNING_RATE,
+                      one_step_weight=ONE_STEP_WEIGHT,
+                      l2_weight=0.0)
 
     _agent = agent(
         agent_id=train_id,
         env=_env,
-        model=_network,
+        policy_network=_policy,
+        target_network=_target,
         buffer=_buffer,
         gamma=GAMMA,
-        replay_start_size=REPLAY_START_SIZE,
+        warm_up_episode=WARM_UP_EPISODE,
         epsilon_start=EPSILON_START,
         epsilon_end=EPSILON_END,
         epsilon_decay_steps=EPSILON_DECAY_STEPS,
@@ -35,7 +56,7 @@ def trainWrapper(env, buffer, network, agent, train_id):
     )
 
     assert isinstance(_agent, ibaseAgent.BaseAgent)
-    assert isinstance(network(), ibaseNN.BaseNN)
+    assert isinstance(_policy, ibasePolicy.BaseNNPolicy)
     assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
 
@@ -43,22 +64,42 @@ def trainWrapper(env, buffer, network, agent, train_id):
 
 
 def testWrapper(agent, env, network, buffer, test_id):
-    _env = env(env_name=ENV_NAME, output_shape=IMAGE_SHAPE, frame_stack=FRAME_STACK, train=False)
+    _env = env(env_name=ENV_NAME,
+               output_shape=IMAGE_SHAPE,
+               frame_stack=FRAME_STACK,
+               crop=CROP,
+               train=False)
     _buffer = buffer(size=TEST_BUFFER_SIZE, batch_size=TEST_BATCH_SIZE)
-    _network = network().build(
-        n_actions=_env.action_space.n,
-        learning_rate=LEARNING_RATE,
-        input_shape=IMAGE_SHAPE,
-        frame_stack=FRAME_STACK
-    )
+
+    _policy = network(conv_layers=CONV_LAYERS,
+                      dense_layers=None,
+                      input_shape=IMAGE_SHAPE,
+                      frame_stack=FRAME_STACK,
+                      n_actions=_env.action_space.n,
+                      optimizer=OPTIMIZER,
+                      lr_schedule=LEARNING_RATE,
+                      one_step_weight=1.0,
+                      l2_weight=0.0)
+
+    _target = network(conv_layers=CONV_LAYERS,
+                      dense_layers=None,
+                      input_shape=IMAGE_SHAPE,
+                      frame_stack=FRAME_STACK,
+                      n_actions=_env.action_space.n,
+                      optimizer=OPTIMIZER,
+                      lr_schedule=LEARNING_RATE,
+                      one_step_weight=1.0,
+                      l2_weight=0.0)
+
     _agent = agent(
         agent_id=test_id,
         env=_env,
-        model=_network,
+        policy_network=_policy,
+        target_network=_target,
         buffer=_buffer,
     )
     assert isinstance(_agent, ibaseAgent.BaseAgent)
-    assert isinstance(network(), ibaseNN.BaseNN)
+    assert isinstance(_policy, ibasePolicy.BaseNNPolicy)
     assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
     return _agent, _env

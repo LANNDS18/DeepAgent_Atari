@@ -1,4 +1,3 @@
-import copy
 import os
 import gym
 import numpy as np
@@ -22,14 +21,14 @@ class BaseAgent(ABC):
     def __init__(
             self,
             env,
-            model,
+            policy_network,
+            target_network,
             buffer,
             agent_id,
-            replay_start_size=20000,
+            warm_up_episode=40,
             mean_reward_step=100,
             gamma=0.99,
             frame_stack=4,
-            optimizer=None,
             model_update_freq=4,
             target_sync_freq=10000,
             saving_model=False,
@@ -44,8 +43,8 @@ class BaseAgent(ABC):
         self.input_shape = self.env.observation_space.shape
 
         self.buffer = buffer
-        self.replay_start_size = replay_start_size
-        self.mean_reward_buffer = deque(maxlen=mean_reward_step)
+        self.warm_up_episode = warm_up_episode
+        self.real_mean_reward_buffer = deque(maxlen=mean_reward_step)
         self.mean_reward_step = mean_reward_step
 
         self.gamma = gamma
@@ -54,9 +53,9 @@ class BaseAgent(ABC):
         self.state = self.env.reset()
         self.done = False
 
-        self.best_mean_reward = -float('inf')
-        self.mean_reward = -float('inf')
-        self.episode_reward = 0
+        self.real_best_mean_reward = -float('inf')
+        self.real_mean_reward = -float('inf')
+        self.real_episode_score = 0
 
         self.total_step = 0
         self.episode = 0
@@ -70,12 +69,9 @@ class BaseAgent(ABC):
         self.model_update_freq = model_update_freq
         self.target_sync_freq = target_sync_freq
 
-        self.model = copy.deepcopy(model)
-        self.target_model = copy.deepcopy(model)
+        self.policy_network = policy_network
+        self.target_network = target_network
 
-        self.optimizer = model.optimizer if optimizer is None else optimizer
-
-        self.loss = tf.keras.losses.Huber()
         self.loss_metric = tf.keras.metrics.Mean('loss_metric', dtype=tf.float32)
         self.q_metric = tf.keras.metrics.Mean(name="Q_value")
 
@@ -85,11 +81,11 @@ class BaseAgent(ABC):
         self.log_history = log_history
 
         if self.saving_model:
-            self.saving_path = f'./models/{self.agent_id}'
+            self.saving_path = f'./models/{self.agent_id}' + '_' + self.game_id
             self.check_saving_path()
             self.history_dict_path = self.saving_path + '/history_check_point.json'
         if self.log_history:
-            self.train_log_dir = './log/' + agent_id + '_' + self.game_id + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.train_log_dir = './log/' + agent_id + '_' + self.game_id + '_' +datetime.now().strftime("%Y%m%d-%H%M%S")
             self.summary_writer = tf.summary.create_file_writer(self.train_log_dir)
 
         self.reset_env()
@@ -116,21 +112,21 @@ class BaseAgent(ABC):
 
     def save_model(self):
         """
-        Save model weight to checkpoint
+        Save policy_network weight to checkpoint
         """
         if self.saving_model:
             self.display_message('Saving Weights...')
-            self.model.save_weights(self.saving_path + '/main/')
-            self.target_model.save_weights(self.saving_path + '/target/')
+            self.policy_network.save(self.saving_path + '/main/')
+            self.target_network.save(self.saving_path + '/target/')
             self.display_message(f'Successfully saving to {self.saving_path}')
 
     def load_model(self):
         """
-        Load model weight from saving_path
+        Load policy_network weight from saving_path
         """
         self.display_message('Loading Weights...')
-        self.model.load_weights(self.saving_path + '/main/')
-        self.target_model.load_weights(self.saving_path + '/target/')
+        self.policy_network.load(self.saving_path + '/main/')
+        self.target_network.load(self.saving_path + '/target/')
         self.display_message(f'Loaded from {self.saving_path}')
 
     def display_learning_state(self):
@@ -151,8 +147,8 @@ class BaseAgent(ABC):
             self.total_step,
             self.episode,
             f'{round(self.frame_speed)} step/s',
-            self.mean_reward,
-            self.best_mean_reward,
+            self.real_mean_reward,
+            self.real_best_mean_reward,
         )
         display = (
             f'{title}: {value}'
@@ -164,8 +160,8 @@ class BaseAgent(ABC):
         """
         Reset the state, episode reward, done
         """
-        self.state = self.env.reset()
-        self.episode_reward = 0.0
+        self.reset_env()
+        self.real_episode_score = 0.0
         self.done = False
 
         self.last_reset_time = perf_counter()
@@ -174,47 +170,49 @@ class BaseAgent(ABC):
     def update_training_parameters(self):
         """
         Update progress metrics which consist of last reset step and time used
-        for calculation of fps, and update mean and best reward. The model is
+        for calculation of fps, and update mean and best reward. The policy_network is
         saved if there is a checkpoint path specified.
         """
-        self.episode += 1
+        self.episode = self.env.episode_count - self.warm_up_episode
+        self.real_episode_score = self.env.episode_returns
+        self.real_mean_reward_buffer.append(self.real_episode_score)
 
-        self.mean_reward_buffer.append(self.episode_reward)
-
-        self.mean_reward = np.around(
-            np.mean(self.mean_reward_buffer), 5
+        self.real_mean_reward = np.around(
+            np.mean(self.real_mean_reward_buffer), 5
         )
 
         self.frame_speed = (self.total_step - self.last_reset_step) / (
                 perf_counter() - self.last_reset_time
         )
 
-        if self.mean_reward > self.best_mean_reward:
+        if self.real_mean_reward > self.real_best_mean_reward and self.episode >= 10:
             self.display_message(
-                f'Best Moving Average Reward Updated: {colored(str(self.best_mean_reward), "red")} -> '
-                f'{colored(str(self.mean_reward), "green")}'
+                f'Best Moving Average Reward Updated: {colored(str(self.real_best_mean_reward), "red")} -> '
+                f'{colored(str(self.real_mean_reward), "green")}'
             )
-            self.best_mean_reward = self.mean_reward
+            self.real_best_mean_reward = self.real_mean_reward
             if self.saving_model:
                 self.update_history()
 
-    def fill_buffer(self, fill_size=20000, load=False):
+    def fill_buffer(self, load=False):
         """
         Fill replay buffer up to its initial size.
         """
+        episode = 0
         total_size = self.buffer.size
         buffer = self.buffer
         state = self.env.reset()
-        while buffer.current_size < fill_size:
+        while episode < self.warm_up_episode:
             if not load:
                 action = self.env.action_space.sample()
             else:
-                action = np.argmax(self.model(tf.expand_dims(state, axis=0)))
+                action = np.argmax(self.policy_network.predict(tf.expand_dims(state, axis=0)))
             new_state, reward, done, _ = self.env.step(action)
             buffer.append(state, action, reward, done, new_state)
             state = new_state
-            if done:
+            if self.env.was_real_done:
                 state = self.env.reset()
+                episode += 1
             filled = buffer.current_size
             self.display_message(
                 f'\rFilling experience replay buffer => '
@@ -228,9 +226,9 @@ class BaseAgent(ABC):
     def record_tensorboard(self):
         step = self.episode
         with self.summary_writer.as_default():
-            tf.summary.scalar('Average Reward (100 Episode Moving Average)', self.mean_reward, step=step)
+            tf.summary.scalar('Average Reward (100 Episode Moving Average)', self.real_mean_reward, step=step)
             tf.summary.scalar('Average Q', self.q_metric.result(), step=step)
-            tf.summary.scalar('Episode Reward', self.episode_reward, step=step)
+            tf.summary.scalar('Episode Reward', self.real_episode_score, step=step)
             tf.summary.scalar('Loss', self.loss_metric.result(), step=step)
             tf.summary.scalar('Epsilon', self.epsilon, step=step)
             tf.summary.scalar("Total Frames", self.total_step, step=step)
@@ -265,12 +263,12 @@ class BaseAgent(ABC):
 
     def update_history(self, model=True):
         """
-        Write 1 episode stats to checkpoint and write model when it crosses interval.
+        Write 1 episode stats to checkpoint and write policy_network when it crosses interval.
         """
         data = {
-            'mean_reward': [self.mean_reward],
-            'best_mean_reward': [self.best_mean_reward],
-            'episode_reward': [self.episode_reward],
+            'mean_reward': [self.real_mean_reward],
+            'best_mean_reward': [self.real_best_mean_reward],
+            'episode_reward': [self.real_episode_score],
             'step': [self.total_step],
             'time': [perf_counter() - self.training_start_time],
             'episode': [self.episode]
@@ -283,35 +281,37 @@ class BaseAgent(ABC):
         """
         Load previous training session metadata and update agent metrics to go from there.
         """
-        # Load model from checkpoint
+        # Load policy_network from checkpoint
         self.load_model()
         # Load training data from json
         previous_history = pd.read_json(self.history_dict_path).to_dict()
-        self.mean_reward = previous_history['mean_reward'][0]
-        self.best_mean_reward = previous_history['best_mean_reward'][0]
+        self.real_mean_reward = previous_history['mean_reward'][0]
+        self.real_best_mean_reward = previous_history['best_mean_reward'][0]
         history_start_steps = previous_history['step'][0]
         history_start_time = previous_history['time'][0]
         self.training_start_time = perf_counter() - history_start_time
         self.last_reset_step = self.total_step = int(history_start_steps)
         self.episode = previous_history['episode'][0]
         for i in range(self.episode):
-            self.mean_reward_buffer.append(self.mean_reward)
+            self.real_mean_reward_buffer.append(self.real_mean_reward)
 
     def init_training(self, max_steps):
         """
-        Initialize training start time & model (self.model / self.target_model)
+        Initialize training start time & policy_network (self.policy_network / self.target_network)
         Args:
             max_steps: Maximum time total_step, if exceeded, the training will stop.
         """
 
         self.max_steps = max_steps
-
-        self.state = self.env.reset()
-        self.episode_reward = 0.0
+        self.env.true_reset()
+        self.reset_env()
+        self.real_episode_score = 0.0
         self.done = False
         self.last_reset_time = perf_counter()
         self.training_start_time = perf_counter()
+
         load = False
+
         if self.saving_model and Path(self.history_dict_path).is_file():
             self.display_message(f'Load history from {self.history_dict_path}')
             load = True
@@ -319,7 +319,7 @@ class BaseAgent(ABC):
         else:
             self.total_step = 0
             self.episode = 1
-        self.fill_buffer(fill_size=self.replay_start_size, load=load)
+        self.fill_buffer(load=load)
 
     def train_step(self):
         """
@@ -371,7 +371,7 @@ class BaseAgent(ABC):
         Play and display a test_env.
         Args:
             test_env: The env for testing the agent
-            saving_path: The path for loading the model
+            saving_path: The path for loading the policy_network
             video_dir: Path to directory to save the resulting test_env video.
             render: If True, the test_env will be displayed.
             frame_delay: Delay between rendered frames.
@@ -400,7 +400,7 @@ class BaseAgent(ABC):
 
             # Greedy choose
             state = tf.expand_dims(state, axis=0)
-            action = np.argmax(self.model(state))
+            action = np.argmax(self.policy_network.predict(state))
             state, reward, done, _ = env.step(action)
             episode_reward += reward
             if done:
