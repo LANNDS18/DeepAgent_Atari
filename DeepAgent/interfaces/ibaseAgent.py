@@ -13,7 +13,7 @@ from termcolor import colored
 from DeepAgent.utils.common import write_from_dict
 
 
-class BaseAgent(ABC):
+class OffPolicy(ABC):
     """
         Base class for various types of dqn agents.
     """
@@ -31,6 +31,7 @@ class BaseAgent(ABC):
             frame_stack=4,
             model_update_freq=4,
             target_sync_freq=10000,
+            target_reward=None,
             saving_model=False,
             log_history=False,
             quiet=False,
@@ -76,6 +77,7 @@ class BaseAgent(ABC):
         self.q_metric = tf.keras.metrics.Mean(name="Q_value")
 
         self.quiet = quiet
+        self.target_reward = target_reward
 
         self.saving_model = saving_model
         self.log_history = log_history
@@ -85,9 +87,39 @@ class BaseAgent(ABC):
             self.check_saving_path()
             self.history_dict_path = self.saving_path + '/history_check_point.json'
         if self.log_history:
-            self.train_log_dir = './log/' + agent_id + '_' + self.game_id + '_' +datetime.now().strftime("%Y%m%d-%H%M%S")
+            self.train_log_dir = './log/' + agent_id + '_' + self.game_id + '_' + datetime.now().strftime(
+                "%Y%m%d-%H%M%S")
             self.summary_writer = tf.summary.create_file_writer(self.train_log_dir)
 
+        self.reset_env()
+
+    def fill_buffer(self, load=False):
+        """
+        Fill replay buffer up to its initial size.
+        """
+        episode = 0
+        total_size = self.buffer.size
+        buffer = self.buffer
+        state = self.env.reset()
+        while episode < self.warm_up_episode:
+            if not load:
+                action = self.env.action_space.sample()
+            else:
+                action = np.argmax(self.policy_network.predict(tf.expand_dims(state, axis=0)))
+            new_state, reward, done, _ = self.env.step(action)
+            buffer.append(state, action, reward, done, new_state)
+            state = new_state
+            if self.env.was_real_done:
+                state = self.env.reset()
+                episode += 1
+            filled = buffer.current_size
+            self.display_message(
+                f'\rFilling experience replay buffer => '
+                f'{filled}/{total_size}',
+                end='',
+            )
+        self.state = state
+        self.display_message('')
         self.reset_env()
 
     def display_message(self, *args, **kwargs):
@@ -156,72 +188,28 @@ class BaseAgent(ABC):
         )
         self.display_message(', '.join(display))
 
-    def reset_episode_parameters(self):
+    def check_finish_training(self):
         """
-        Reset the state, episode reward, done
+        Check whether a target reward or maximum number of total_step is reached.
+        Returns:
+            bool
         """
-        self.reset_env()
-        self.real_episode_score = 0.0
-        self.done = False
+        finish = False
+        if self.max_steps and self.total_step >= self.max_steps:
+            self.display_message(f'Maximum total_step exceeded')
+            finish = True
 
-        self.last_reset_time = perf_counter()
-        self.last_reset_step = self.total_step
+        if self.target_reward is not None and self.real_mean_reward >= self.target_reward:
+            self.display_message(f'Reach Target reward{self.target_reward}, early stop')
+            finish = True
 
-    def update_training_parameters(self):
-        """
-        Update progress metrics which consist of last reset step and time used
-        for calculation of fps, and update mean and best reward. The policy_network is
-        saved if there is a checkpoint path specified.
-        """
-        self.episode = self.env.episode_count - self.warm_up_episode
-        self.real_episode_score = self.env.episode_returns
-        self.real_mean_reward_buffer.append(self.real_episode_score)
-
-        self.real_mean_reward = np.around(
-            np.mean(self.real_mean_reward_buffer), 5
-        )
-
-        self.frame_speed = (self.total_step - self.last_reset_step) / (
-                perf_counter() - self.last_reset_time
-        )
-
-        if self.real_mean_reward > self.real_best_mean_reward and self.episode >= 10:
-            self.display_message(
-                f'Best Moving Average Reward Updated: {colored(str(self.real_best_mean_reward), "red")} -> '
-                f'{colored(str(self.real_mean_reward), "green")}'
-            )
-            self.real_best_mean_reward = self.real_mean_reward
-            if self.saving_model:
-                self.update_history()
-
-    def fill_buffer(self, load=False):
-        """
-        Fill replay buffer up to its initial size.
-        """
-        episode = 0
-        total_size = self.buffer.size
-        buffer = self.buffer
-        state = self.env.reset()
-        while episode < self.warm_up_episode:
-            if not load:
-                action = self.env.action_space.sample()
-            else:
-                action = np.argmax(self.policy_network.predict(tf.expand_dims(state, axis=0)))
-            new_state, reward, done, _ = self.env.step(action)
-            buffer.append(state, action, reward, done, new_state)
-            state = new_state
-            if self.env.was_real_done:
-                state = self.env.reset()
-                episode += 1
-            filled = buffer.current_size
-            self.display_message(
-                f'\rFilling experience replay buffer => '
-                f'{filled}/{total_size}',
-                end='',
-            )
-        self.state = state
-        self.display_message('')
-        self.reset_env()
+        if finish:
+            self.saving_path = self.saving_path + '/end'
+            os.makedirs(self.saving_path, exist_ok=True)
+            self.history_dict_path = self.saving_path + '/history_check_point.json'
+            self.update_history()
+            return True
+        return False
 
     def record_tensorboard(self):
         step = self.episode
@@ -234,32 +222,6 @@ class BaseAgent(ABC):
             tf.summary.scalar("Total Frames", self.total_step, step=step)
         self.loss_metric.reset_states()
         self.q_metric.reset_states()
-
-    def check_episodes(self):
-        """
-        Check environment done counts to display progress and update metrics.
-        """
-        if self.done:
-            if self.log_history:
-                self.record_tensorboard()
-            self.update_training_parameters()
-            self.display_learning_state()
-            self.reset_episode_parameters()
-
-    def check_finish_training(self):
-        """
-        Check whether a target reward or maximum number of total_step is reached.
-        Returns:
-            bool
-        """
-        if self.max_steps and self.total_step >= self.max_steps:
-            self.display_message(f'Maximum total_step exceeded')
-            self.saving_path = self.saving_path + '/end'
-            os.makedirs(self.saving_path, exist_ok=True)
-            self.history_dict_path = self.saving_path + '/history_check_point.json'
-            self.update_history()
-            return True
-        return False
 
     def update_history(self, model=True):
         """
@@ -294,6 +256,54 @@ class BaseAgent(ABC):
         self.episode = previous_history['episode'][0]
         for i in range(self.episode):
             self.real_mean_reward_buffer.append(self.real_mean_reward)
+
+    def reset_episode_parameters(self):
+        """
+        Reset the state, episode reward, done
+        """
+        self.reset_env()
+        self.done = False
+
+        self.last_reset_time = perf_counter()
+        self.last_reset_step = self.total_step
+
+    def update_training_parameters(self):
+        """
+        Update progress metrics which consist of last reset step and time used
+        for calculation of fps, and update mean and best reward. The policy_network is
+        saved if there is a checkpoint path specified.
+        """
+        self.episode = self.env.episode_count - self.warm_up_episode
+        self.real_episode_score = self.env.episode_returns
+        self.real_mean_reward_buffer.append(self.real_episode_score)
+
+        self.real_mean_reward = np.around(
+            np.mean(self.real_mean_reward_buffer), 5
+        )
+
+        self.frame_speed = (self.total_step - self.last_reset_step) / (
+                perf_counter() - self.last_reset_time
+        )
+
+        if self.real_mean_reward > self.real_best_mean_reward and self.episode >= 10:
+            self.display_message(
+                f'Best Moving Average Reward Updated: {colored(str(self.real_best_mean_reward), "red")} -> '
+                f'{colored(str(self.real_mean_reward), "green")}'
+            )
+            self.real_best_mean_reward = self.real_mean_reward
+            if self.saving_model:
+                self.update_history()
+
+    def check_episodes(self):
+        """
+        Check environment done counts to display progress and update metrics.
+        """
+        if self.done:
+            self.update_training_parameters()
+            if self.log_history:
+                self.record_tensorboard()
+            self.display_learning_state()
+            self.reset_episode_parameters()
 
     def init_training(self, max_steps):
         """

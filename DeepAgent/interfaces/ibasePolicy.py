@@ -60,6 +60,9 @@ class BaseNNPolicy(ABC):
         self.model = self.build()
 
     def build(self):
+        """
+        Build the keras model from self.dense_layers and self.conv_layers
+        """
         raise NotImplementedError
 
     def load(self, path):
@@ -70,7 +73,7 @@ class BaseNNPolicy(ABC):
 
     @tf.function
     def predict(self, states):
-        """Perform a forward pass through the network"""
+        """Perform a forward pass through the network, (Predict Q values)"""
         predictions = self.model(states, training=False)
         return predictions
 
@@ -82,4 +85,14 @@ class BaseNNPolicy(ABC):
         action = tf.cast(tf.squeeze(tf.math.argmax(q_value, axis=1)), dtype=tf.int32)
         return action
 
+    def _get_current_lr(self):
+        if self.update_counter > self.lr_schedule[0, 2] and self.lr_schedule.shape[0] > 1:
+            self.lr_schedule = np.delete(self.lr_schedule, 0, 0)
+            self.lr_lag = self.update_counter
+        max_lr, min_lr, lr_steps = self.lr_schedule[0]
+        lr = max_lr - min(1, (self.update_counter - self.lr_lag) / (lr_steps - self.lr_lag)) * (max_lr - min_lr)
+        return lr
 
+    def update_lr(self):
+        self.update_counter += 1
+        self.optimizer._set_hyper('learning_rate', self._get_current_lr())

@@ -10,7 +10,7 @@ from keras.initializers.initializers_v2 import VarianceScaling
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
 
 
-class DeepQNetwork(BaseNNPolicy):
+class CNN(BaseNNPolicy):
 
     def __init__(self,
                  conv_layers=None,
@@ -24,16 +24,16 @@ class DeepQNetwork(BaseNNPolicy):
                  one_step_weight=1.0,
                  l2_weight=0.0):
 
-        super(DeepQNetwork, self).__init__(conv_layers,
-                                           dense_layers,
-                                           input_shape,
-                                           frame_stack,
-                                           n_actions,
-                                           optimizer,
-                                           lr_schedule,
-                                           loss_function,
-                                           one_step_weight,
-                                           l2_weight)
+        super(CNN, self).__init__(conv_layers=conv_layers,
+                                  dense_layers=dense_layers,
+                                  input_shape=input_shape,
+                                  frame_stack=frame_stack,
+                                  n_actions=n_actions,
+                                  optimizer=optimizer,
+                                  lr_schedule=lr_schedule,
+                                  loss_function=loss_function,
+                                  one_step_weight=one_step_weight,
+                                  l2_weight=l2_weight)
 
     def build(self):
 
@@ -81,15 +81,3 @@ class DeepQNetwork(BaseNNPolicy):
         model = Model(inputs=[model_input], outputs=[out_layer])
         model.summary()
         return model
-
-    def _get_current_lr(self):
-        if self.update_counter > self.lr_schedule[0, 2] and self.lr_schedule.shape[0] > 1:
-            self.lr_schedule = np.delete(self.lr_schedule, 0, 0)
-            self.lr_lag = self.update_counter
-        max_lr, min_lr, lr_steps = self.lr_schedule[0]
-        lr = max_lr - min(1, (self.update_counter - self.lr_lag) / (lr_steps - self.lr_lag)) * (max_lr - min_lr)
-        return lr
-
-    def update_lr(self):
-        self.update_counter += 1
-        self.optimizer._set_hyper('learning_rate', self._get_current_lr())

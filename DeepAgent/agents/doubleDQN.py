@@ -24,37 +24,47 @@ class DoubleDQNAgent(DQNAgent):
         super(DoubleDQNAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
 
     @tf.function
-    def update_gradient(self, states, actions, rewards, dones, next_states):
+    def update_gradient(self, states, actions, rewards, dones, new_states, batch_weights=1):
         """Update main q network by experience replay method.
-
         Args:
             states (tf.float32): Batch of states.
             actions (tf.int32): Batch of actions.
             rewards (tf.float32): Batch of rewards.
-            next_states (tf.float32): Batch of next states.
             dones (tf.bool): Batch or terminal status.
-
+            new_states (tf.float32): Batch of next states.
+            batch_weights(tf.float32): weights of this batch
         Returns:
             loss (tf.float32): Huber loss of temporal difference.
         """
+        q_online = self.policy_network.predict(new_states)
+        action_q_online = tf.math.argmax(q_online, axis=1)
+
+        q_target = self.target_network.predict(new_states)
+        double_q = tf.reduce_sum(
+            q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0),
+            axis=1)
+
+        self.policy_network.update_lr()
 
         with tf.GradientTape() as tape:
-            action_q_online = tf.math.argmax(
-                self.model(next_states), axis=1)
+            tape.watch(self.policy_network.model.trainable_weights)
 
-            q_target = self.target_model(next_states)
+            target_q = rewards + self.gamma * double_q * (
+                    1.0 - tf.cast(dones, tf.float32))
+            main_q = tf.reduce_sum(self.policy_network.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
+                                   axis=1)
 
-            double_q = tf.reduce_sum(
-                q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0), axis=1)
+            losses = self.policy_network.loss_function(main_q, target_q) * self.policy_network.one_step_weight
+            if self.policy_network.l2_weight > 0:
+                losses += self.policy_network.l2_weight * tf.reduce_sum(
+                    [tf.reduce_sum(tf.square(layer_weights))
+                     for layer_weights in self.policy_network.model.trainable_weights])
+            loss = tf.reduce_mean(losses * batch_weights)
 
-            target_q = rewards + self.gamma * double_q * (1.0 - tf.cast(dones, tf.float32))
-            main_q = tf.reduce_sum(self.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0), axis=1)
-            loss = self.loss(tf.stop_gradient(target_q), main_q)
-
-        gradients = tape.gradient(loss, self.model.trainable_variables)
-        clipped_gradients = [tf.clip_by_norm(grad, 10) for grad in gradients]
-        self.optimizer.apply_gradients(zip(clipped_gradients, self.model.trainable_variables))
+        self.policy_network.optimizer.minimize(loss, self.policy_network.model.trainable_variables, tape=tape)
 
         self.loss_metric.update_state(loss)
         self.q_metric.update_state(main_q)
+
+        return main_q, target_q
 
