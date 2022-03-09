@@ -12,6 +12,6 @@ if __name__ == '__main__':
         buffer=ExperienceReplay,
         network=CNN,
         agent=DQNAgent,
-        train_id='DQN_v1')
+        train_id='DQN')
 
     agent.learn(max_steps=int(1e7), target_reward=20)

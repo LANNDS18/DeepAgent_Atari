@@ -12,6 +12,6 @@ if __name__ == '__main__':
         buffer=PrioritizedExperienceReplay,
         network=Dueling,
         agent=D3NPERAgent,
-        train_id='D3N_PER_v1')
+        train_id='D3N_PER')
 
     agent.learn(max_steps=int(1e7), target_reward=20)

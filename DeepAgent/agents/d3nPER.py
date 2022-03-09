@@ -8,7 +8,8 @@ class D3NPERAgent(DoubleDQNAgent):
     def __init__(
             self,
             env,
-            model,
+            policy_network,
+            target_network,
             buffer,
             agent_id='D3N_PER',
             **kwargs,
@@ -22,7 +23,7 @@ class D3NPERAgent(DoubleDQNAgent):
             buffer: A prioritized experience replay buffer objects
             **kwargs: kwargs passed to super classes.
         """
-        super(D3NPERAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
+        super(D3NPERAgent, self).__init__(env, policy_network, target_network, buffer, agent_id, **kwargs)
         assert (isinstance(self.buffer, PrioritizedExperienceReplay)), \
             'The buffer should be a PrioritizedExperienceReplay buffer.'
 

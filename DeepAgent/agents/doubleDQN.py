@@ -7,7 +7,8 @@ class DoubleDQNAgent(DQNAgent):
     def __init__(
             self,
             env,
-            model,
+            policy_network,
+            target_network,
             buffer,
             agent_id='Double DQN',
             **kwargs,
@@ -21,7 +22,7 @@ class DoubleDQNAgent(DQNAgent):
             buffer: A buffer objects
             **kwargs: kwargs passed to super classes.
         """
-        super(DoubleDQNAgent, self).__init__(env, model, buffer, agent_id, **kwargs)
+        super(DoubleDQNAgent, self).__init__(env, policy_network, target_network, buffer, agent_id, **kwargs)
 
     @tf.function
     def update_gradient(self, states, actions, rewards, dones, new_states, batch_weights=1):
