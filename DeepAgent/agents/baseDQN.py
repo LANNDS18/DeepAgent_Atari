@@ -121,10 +121,12 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
     def learn(
             self,
             max_steps,
+            target_reward=None
     ):
         """
         Args:
             max_steps: Maximum number of total_step, if reached the training will stop.
+            target_reward: Target_reward: The target moving average reward, if reached the training will stop, if null will be ignored
         """
         self.init_training(max_steps)
         while True:
