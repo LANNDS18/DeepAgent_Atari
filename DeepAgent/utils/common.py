@@ -8,7 +8,7 @@ class LazyFrames(object):
         """This object ensures that common frames between the observations are only stored once.
         It exists purely to optimize buffer usage which can be huge for DQN's 1M frames replay
         buffers.
-        This object should only be converted to numpy array before being passed to the model.
+        This object should only be converted to numpy array before being passed to the policy_network.
         You'd not believe how complex the previous solution was."""
         self._frames = frames
         self._out = None
@@ -49,7 +49,7 @@ def write_from_dict(_dict, path):
         json.dump(_dict, fp)
 
 
-def process_frame(frame, shape=(84, 84), crop=(15, -20)):
+def process_frame(frame, shape=(84, 84), crop=None):
     """
     Preprocesses a 210x160x3 frame to 84x84x1 grayscale
     Arguments:
@@ -62,7 +62,7 @@ def process_frame(frame, shape=(84, 84), crop=(15, -20)):
     frame = frame.astype(np.uint8)  # cv2 requires np.uint8, other dtypes will not work
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     if crop:
-        frame = frame[crop[0]:crop[1], :]
+        frame = crop(frame)
     frame = cv2.resize(frame, shape)
     frame = frame.reshape(*shape, -1)
     return frame

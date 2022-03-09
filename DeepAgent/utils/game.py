@@ -33,6 +33,8 @@ class EpisodicLifeEnv(gym.Wrapper):
         gym.Wrapper.__init__(self, env_name)
         self.lives = 0
         self.was_real_done = True
+        self.episode_returns = 0.0
+        self.episode_count = 0
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -41,6 +43,7 @@ class EpisodicLifeEnv(gym.Wrapper):
         if self.lives > lives > 0:
             done = True
         self.lives = lives
+        self.episode_returns += reward
         return obs, reward, done, info
 
     def reset(self, **kwargs):
@@ -49,6 +52,8 @@ class EpisodicLifeEnv(gym.Wrapper):
         and the learner need not know about any of this behind-the-scenes.
         """
         if self.was_real_done:
+            self.episode_count += 1
+            self.episode_returns = 0.0
             obs = self.env.reset(**kwargs)
         else:
             obs, _, _, _ = self.env.step(0)
@@ -57,7 +62,7 @@ class EpisodicLifeEnv(gym.Wrapper):
 
 
 class NoopResetEnv(gym.Wrapper):
-    def __init__(self, env, noop_max=30):
+    def __init__(self, env, noop_max=5):
         """Sample initial states by taking random number of no-ops on reset.
         No-op is assumed to be action 0.
         """
@@ -98,6 +103,7 @@ class MaxAndSkipEnv(gym.Wrapper):
         """Repeat action, sum reward, and max over last observations."""
         total_reward = 0.0
         done = None
+        info = None
         for i in range(self._skip):
             obs, reward, done, info = self.env.step(action)
             if i == self._skip - 2:
@@ -107,10 +113,7 @@ class MaxAndSkipEnv(gym.Wrapper):
             total_reward += reward
             if done:
                 break
-        # Note that the observation on the done=True frame
-        # doesn't matter
-        max_frame = self._obs_buffer.max(axis=0)
-
+        max_frame = np.amax(self._obs_buffer, axis=0)
         return max_frame, total_reward, done, info
 
     def reset(self, **kwargs):
@@ -145,7 +148,7 @@ class StackFrameEnv(gym.Wrapper):
 
 
 class ResizeEnv(gym.ObservationWrapper):
-    def __init__(self, env, output_shape=(84, 84)):
+    def __init__(self, env, output_shape=(84, 84), crop=None):
         """
         Warp frames to 84x84 as done in the Nature paper and later work.
         If the environment uses dictionary observations, `dict_space_key` can be specified which indicates which
@@ -158,44 +161,49 @@ class ResizeEnv(gym.ObservationWrapper):
             shape=(output_shape[0], output_shape[1], 1),
             dtype=np.uint8,
         )
+        self.crop = crop
         self.output_shape = output_shape
         self.observation_space = new_space
 
     def observation(self, obs):
-        return process_frame(obs, shape=self.output_shape)
+        frame = process_frame(obs, shape=self.output_shape, crop=self.crop)
+        return frame
 
 
-class ClipReward(gym.RewardWrapper):
+class ClipReward(gym.Wrapper):
     """
         The probability of negative reward (or done) is much less than positive.
         Therefore, clip reward in [-1, 1] scale then lower the reward which is positive
     """
+
     def __init__(self, env):
         self.done = None
+        self.lives = env.unwrapped.ale.lives()
         super(ClipReward, self).__init__(env)
+
+    def reset(self, **kwargs):
+        self.lives = self.env.unwrapped.ale.lives()
+        return self.env.reset(**kwargs)
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
         self.done = done
-        return observation, self.reward(reward), done, info
-
-    def reward(self, reward):
-        if self.done:
+        if done:
             reward = -1
-        return np.sign(reward)
+        return observation, np.sign(reward), done, info
 
 
-def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), train=True):
+def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
     env = gym.make(env_name)
     assert 'NoFrameskip' in env.spec.id
-    env = NoopResetEnv(env, noop_max=30)
+    env = NoopResetEnv(env, noop_max=10)
     env = MaxAndSkipEnv(env, skip=4)
+    env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     if train:
         env = EpisodicLifeEnv(env)
         env = ClipReward(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = PendingFire(env)
-    env = ResizeEnv(env, output_shape=output_shape)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
     return env
@@ -204,14 +212,18 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), train=True):
 class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env_name, output_shape=(84, 84), frame_stack=4, train=True):
-        env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=output_shape, train=train)
+    def __init__(self, env_name, output_shape=(84, 84), frame_stack=4, crop=lambda x: x, train=True):
+        env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=output_shape, train=train, crop=crop)
         self.id = env_name
         self.env = env
         super().__init__(env)
 
     def reset(self):
         frame = np.array(self.env.reset())
+        return frame
+
+    def true_reset(self):
+        frame = self.env.unwrapped.reset()
         return frame
 
     def step(self, action):
