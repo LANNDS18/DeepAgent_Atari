@@ -10,6 +10,6 @@ if __name__ == '__main__':
         buffer=ExperienceReplay,
         network=Dueling,
         agent=DQNAgent,
-        train_id='DDDQN_v2')
+        train_id='DDDQN_v1')
 
     agent.learn(max_steps=1e7)

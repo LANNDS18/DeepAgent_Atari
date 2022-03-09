@@ -31,7 +31,6 @@ class OffPolicy(ABC):
             frame_stack=4,
             model_update_freq=4,
             target_sync_freq=10000,
-            target_reward=None,
             saving_model=False,
             log_history=False,
             quiet=False,
@@ -60,9 +59,11 @@ class OffPolicy(ABC):
 
         self.total_step = 0
         self.episode = 0
-        self.max_steps = None
-        self.last_reset_step = 0
 
+        self.max_steps = None
+        self.target_reward = None
+
+        self.last_reset_step = 0
         self.training_start_time = None
         self.last_reset_time = None
         self.frame_speed = 0
@@ -77,7 +78,6 @@ class OffPolicy(ABC):
         self.q_metric = tf.keras.metrics.Mean(name="Q_value")
 
         self.quiet = quiet
-        self.target_reward = target_reward
 
         self.saving_model = saving_model
         self.log_history = log_history
@@ -161,6 +161,10 @@ class OffPolicy(ABC):
         self.target_network.load(self.saving_path + '/target/')
         self.display_message(f'Loaded from {self.saving_path}')
 
+    def sync_target_model(self):
+        """Synchronize weights of target network by those of main network."""
+        self.target_network.model.set_weights(self.policy_network.model.get_weights())
+
     def display_learning_state(self):
         """
         Display progress metrics to the console when environments complete a full episode.
@@ -185,7 +189,7 @@ class OffPolicy(ABC):
             self.epsilon,
         )
         display = (
-            f'{title}: {value}'
+            f'{title}: {colored(str(value), "blue")}'
             for title, value in zip(display_titles, display_values)
         )
         self.display_message(', '.join(display))
@@ -333,6 +337,10 @@ class OffPolicy(ABC):
             self.episode = 1
         self.fill_buffer(load=load)
 
+    def at_step_start(self):
+        self.total_step += 1
+        raise NotImplementedError
+
     def train_step(self):
         """
         Perform 1 step which controls action_selection, interaction with environments
@@ -342,15 +350,16 @@ class OffPolicy(ABC):
             f'train_step() should be implemented by {self.__class__.__name__} subclasses'
         )
 
-    def learn(
-            self,
-            max_steps,
-    ):
+    def at_step_end(self):
+        raise NotImplementedError
+
+    def learn(self, max_steps, target_reward=None, ):
         """
         Common training loop shared by subclasses, monitors training status
         and progress, performs all training total_step, updates metrics, and logs progress.
         Args:
              max_steps: Maximum number of total_step, if reached the training will stop.
+             target_reward: The target moving average reward, if reached the training will stop, if null will be ignored
         """
         self.init_training(max_steps)
         while True:
@@ -361,15 +370,8 @@ class OffPolicy(ABC):
                 self.at_step_start()
                 self.train_step()
                 self.at_step_end()
-            raise NotImplementedError(f'The train step of learn() should '
+            raise NotImplementedError(f'The learn(**kwargs) should '
                                       f'be implemented by {self.__class__.__name__} subclasses')
-
-    def at_step_start(self):
-        self.total_step += 1
-        raise NotImplementedError
-
-    def at_step_end(self):
-        raise NotImplementedError
 
     def play(
             self,
@@ -437,7 +439,7 @@ class OffPolicy(ABC):
 
 class EpsDecayAgent(ABC):
 
-    def __init__(self, eps_schedule=None,):
+    def __init__(self, eps_schedule=None, ):
         if eps_schedule is None:
             self.eps_schedule = [[1.0, 0.1, 1000000], [0.1, 0.001, 5000000]]
         else:
@@ -454,5 +456,9 @@ class EpsDecayAgent(ABC):
         max_eps, min_eps, eps_steps = self.eps_schedule[0]
         epsilon = max_eps - min(1, (total_step - self.eps_lag) / (eps_steps - self.eps_lag)) * (
                 max_eps - min_eps)
-        self.epsilon = epsilon
+        self.epsilon = np.round(epsilon, 5)
         return epsilon
+
+    def learn(self, **kwargs):
+        raise NotImplementedError(f'The learn(self, **kwargs) should '
+                                  f'be implemented by {self.__class__.__name__} subclasses')

@@ -53,10 +53,6 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             action = self.policy_network.get_optimal_actions(tf.cast(state, tf.float32))
         return action
 
-    def sync_target_model(self):
-        """Synchronize weights of target network by those of main network."""
-        self.target_network.model.set_weights(self.policy_network.model.get_weights())
-
     def at_step_start(self):
         """
         Execute total_step that will run before self.train_step() which decays epsilon.
