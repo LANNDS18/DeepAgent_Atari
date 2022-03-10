@@ -1,5 +1,5 @@
-# DeepAgen
-## Play atari game DemonAttack though DeepAgent
+# DeepAgent
+## Play atari game through DeepAgent
 
 This repository implements Deep Q-Network (DQN) and several improvement algorithms (Double DQN, Dueling DQN, Prioritized Experience Replay) by DeepAgent framework for playing Atari game 'DemonAttack'.
 
