@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import gym
 
@@ -62,7 +63,7 @@ class EpisodicLifeEnv(gym.Wrapper):
 
 
 class NoopResetEnv(gym.Wrapper):
-    def __init__(self, env, noop_max=5):
+    def __init__(self, env, noop_max=10):
         """Sample initial states by taking random number of no-ops on reset.
         No-op is assumed to be action 0.
         """
@@ -196,14 +197,14 @@ class ClipReward(gym.Wrapper):
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
     env = gym.make(env_name)
     assert 'NoFrameskip' in env.spec.id
+    if 'FIRE' in env.unwrapped.get_action_meanings():
+        env = PendingFire(env)
+    env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     env = NoopResetEnv(env, noop_max=10)
     env = MaxAndSkipEnv(env, skip=4)
-    env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     if train:
         env = EpisodicLifeEnv(env)
         env = ClipReward(env)
-    if 'FIRE' in env.unwrapped.get_action_meanings():
-        env = PendingFire(env)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
     return env

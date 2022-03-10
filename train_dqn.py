@@ -6,12 +6,13 @@ from TrainEvaluationWrapper import trainWrapper
 from config import PongConfig, DemonAttackConfig
 
 if __name__ == '__main__':
+    _config = DemonAttackConfig
     agent = trainWrapper(
-        config=DemonAttackConfig,
+        config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,
         network=CNN,
         agent=DQNAgent,
         train_id='DQN')
 
-    agent.learn(max_steps=int(1e7), target_reward=20)
+    agent.learn(max_steps=_config.MAX_STEP, target_reward=_config.TARGET_REWARD)
