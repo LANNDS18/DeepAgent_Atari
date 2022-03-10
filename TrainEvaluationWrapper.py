@@ -30,6 +30,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
                       optimizer=config.OPTIMIZER,
                       lr_schedule=config.LEARNING_RATE,
                       one_step_weight=config.ONE_STEP_WEIGHT,
+                      n_step_weight=config.N_STEP_WEIGHT,
                       l2_weight=0.0)
 
     _target = network(conv_layers=config.CONV_LAYERS,
@@ -40,6 +41,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
                       optimizer=config.OPTIMIZER,
                       lr_schedule=config.LEARNING_RATE,
                       one_step_weight=config.ONE_STEP_WEIGHT,
+                      n_step_weight=config.N_STEP_WEIGHT,
                       l2_weight=0.0)
 
     _agent = agent(
@@ -49,6 +51,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
         target_network=_target,
         buffer=_buffer,
         gamma=config.GAMMA,
+        n_step=config.N_STEP,
         warm_up_episode=config.WARM_UP_EPISODE,
         eps_schedule=config.EPS_SCHEDULE,
         target_sync_freq=config.TARGET_SYNC_FREQ,

@@ -1,12 +1,11 @@
 from keras.optimizer_v2.adam import Adam
-from keras.optimizer_v2.rmsprop import RMSprop
 from keras.initializers.initializers_v2 import VarianceScaling
 
 
-def pong_crop(x): return x[25:-5, :]
+def pong_crop(x): return x[30:-10, :]
 
 
-def demon_attack_crop(x): return x[25:-5, :]
+def demon_attack_crop(x): return x[20:-20, :]
 
 
 class PongConfig:
@@ -25,16 +24,15 @@ class PongConfig:
     CONV_LAYERS = {
         'filters': [32, 64, 64],
         'kernel_sizes': [8, 4, 3],
-        'strides': [4, 2, 1, 1],
+        'strides': [4, 2, 1],
         'paddings': ['valid' for _ in range(3)],
         'activations': ['relu' for _ in range(3)],
         'initializers': [VarianceScaling(scale=2.0) for _ in range(3)],
-        'names': ['conv_%i' % i for i in range(1, 5)]
+        'names': ['conv_%i' % i for i in range(1, 4)]
     }
 
     LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
-    OPTIMIZER = RMSprop
-    ONE_STEP_WEIGHT = 0.8
+    OPTIMIZER = Adam
 
     """
     Buffer Parameters
@@ -47,6 +45,9 @@ class PongConfig:
     Agent Parameters
     """
     GAMMA = 0.99
+    N_STEP = 10
+    ONE_STEP_WEIGHT = 0.5
+    N_STEP_WEIGHT = 0.5
     EPS_SCHEDULE = [[1, 0.2, 1e5],
                     [0.2, 0.1, 1e6],
                     [0.1, 0.01, 2e6]]
@@ -67,7 +68,7 @@ class DemonAttackConfig:
     USE_GPU = False
 
     '''Env Parameters'''
-    ENV_NAME = 'PongNoFrameskip-v4'
+    ENV_NAME = 'DemonAttackNoFrameskip-v4'
     FRAME_STACK = 4
     IMAGE_SHAPE = (84, 84)
     CROP = demon_attack_crop
@@ -78,28 +79,30 @@ class DemonAttackConfig:
     CONV_LAYERS = {
         'filters': [32, 64, 64],
         'kernel_sizes': [8, 4, 3],
-        'strides': [4, 2, 1, 1],
+        'strides': [4, 2, 1],
         'paddings': ['valid' for _ in range(3)],
         'activations': ['relu' for _ in range(3)],
         'initializers': [VarianceScaling(scale=2.0) for _ in range(3)],
-        'names': ['conv_%i' % i for i in range(1, 5)]
+        'names': ['conv_%i' % i for i in range(1, 4)]
     }
 
-    LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
+    LEARNING_RATE = [[5e-4, 2.5e-4, 1e6], [2.5e-4, 1e-4, 2e6]]
     OPTIMIZER = Adam
-    ONE_STEP_WEIGHT = 1
 
     """
     Buffer Parameters
     """
     BUFFER_SIZE = 300000
     BATCH_SIZE = 32
-    WARM_UP_EPISODE = 5
+    WARM_UP_EPISODE = 100
 
     """
     Agent Parameters
     """
     GAMMA = 0.99
+    N_STEP = 10
+    ONE_STEP_WEIGHT = 0.5
+    N_STEP_WEIGHT = 0.5
     EPS_SCHEDULE = [[1, 0.2, 1e5],
                     [0.2, 0.1, 1e6],
                     [0.1, 0.01, 2e6]]

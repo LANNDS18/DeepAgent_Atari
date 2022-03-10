@@ -7,7 +7,7 @@ from config import PongConfig, DemonAttackConfig
 
 if __name__ == '__main__':
     agent = trainWrapper(
-        config=PongConfig,
+        config=DemonAttackConfig,
         env=GameEnv,
         buffer=ExperienceReplay,
         network=CNN,

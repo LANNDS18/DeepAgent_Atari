@@ -22,7 +22,7 @@ class ExperienceReplay(BaseBuffer):
     def get_sample_indices(self):
         indices = []
         while len(indices) < self.batch_size:
-            index = np.random.randint(low=0, high=self.current_size, dtype=np.int32)
+            index = np.random.randint(low=0, high=self.current_size - self.batch_size, dtype=np.int32)
             indices.append(index)
         return indices
 
@@ -39,6 +39,31 @@ class ExperienceReplay(BaseBuffer):
 
         return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones, axis=0), \
                tf.stack(new_states, axis=0)
+
+    def get_n_step_sample(self, indices, gamma=0.99, n_step=10):
+        assert n_step <= self.batch_size, f'Buffer size should be > {self.batch_size},  got {n_step}'
+        n_step_states, n_step_rewards, n_step_dones, n_step_next_states = [], [], [], []
+        for index in indices:
+            item = self._buffer[index]
+            total_reward = item.reward
+            next_state = item.new_state
+            next_done = item.done
+
+            for i in range(n_step):
+                next_item = self._buffer[index + i]
+                if next_done is True:
+                    break
+                total_reward += (gamma ** i) * next_item.reward
+                next_done = next_item.done
+                next_state = next_item.new_state
+
+            n_step_states.append(tf.constant(item.state, tf.float32))
+            n_step_rewards.append(tf.constant(total_reward, tf.float32))
+            n_step_dones.append(tf.constant(next_done, tf.bool))
+            n_step_next_states.append(tf.constant(next_state, tf.float32))
+
+        return tf.stack(n_step_states, axis=0), tf.stack(n_step_rewards, axis=0), \
+               tf.stack(n_step_dones, axis=0), tf.stack(n_step_next_states, axis=0)
 
     def __len__(self):
         return len(self._buffer)
