@@ -67,7 +67,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
     return _agent
 
 
-def testWrapper(config, agent, env, network, buffer, test_id):
+def testWrapper(config, agent, env, policy, buffer, test_id):
     _env = env(env_name=config.ENV_NAME,
                output_shape=config.IMAGE_SHAPE,
                frame_stack=config.FRAME_STACK,
@@ -75,25 +75,25 @@ def testWrapper(config, agent, env, network, buffer, test_id):
                train=False)
     _buffer = buffer(size=config.TEST_BUFFER_SIZE, batch_size=config.TEST_BATCH_SIZE)
 
-    _policy = network(conv_layers=config.CONV_LAYERS,
-                      dense_layers=None,
-                      input_shape=config.IMAGE_SHAPE,
-                      frame_stack=config.FRAME_STACK,
-                      n_actions=_env.action_space.n,
-                      optimizer=config.OPTIMIZER,
-                      lr_schedule=config.LEARNING_RATE,
-                      one_step_weight=1.0,
-                      l2_weight=0.0)
+    _policy = policy(conv_layers=config.CONV_LAYERS,
+                     dense_layers=None,
+                     input_shape=config.IMAGE_SHAPE,
+                     frame_stack=config.FRAME_STACK,
+                     n_actions=_env.action_space.n,
+                     optimizer=config.OPTIMIZER,
+                     lr_schedule=config.LEARNING_RATE,
+                     one_step_weight=1.0,
+                     l2_weight=0.0)
 
-    _target = network(conv_layers=config.CONV_LAYERS,
-                      dense_layers=None,
-                      input_shape=config.IMAGE_SHAPE,
-                      frame_stack=config.FRAME_STACK,
-                      n_actions=_env.action_space.n,
-                      optimizer=config.OPTIMIZER,
-                      lr_schedule=config.LEARNING_RATE,
-                      one_step_weight=1.0,
-                      l2_weight=0.0)
+    _target = policy(conv_layers=config.CONV_LAYERS,
+                     dense_layers=None,
+                     input_shape=config.IMAGE_SHAPE,
+                     frame_stack=config.FRAME_STACK,
+                     n_actions=_env.action_space.n,
+                     optimizer=config.OPTIMIZER,
+                     lr_schedule=config.LEARNING_RATE,
+                     one_step_weight=1.0,
+                     l2_weight=0.0)
 
     _agent = agent(
         agent_id=test_id,
@@ -106,4 +106,4 @@ def testWrapper(config, agent, env, network, buffer, test_id):
     assert isinstance(_policy, ibasePolicy.BaseNNPolicy)
     assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
-    return _agent, _env
+    return _agent

@@ -25,8 +25,7 @@ class DoubleDQNAgent(DQNAgent):
         super(DoubleDQNAgent, self).__init__(env, policy_network, target_network, buffer, agent_id, **kwargs)
 
     @tf.function
-    def get_target(self, rewards, dones, next_states, n_step_rewards, n_step_dones, n_step_next,):
-
+    def get_target(self, rewards, dones, next_states, n_step_rewards, n_step_dones, n_step_next, ):
         """
         get target q for both single step and n_step
 
@@ -47,6 +46,7 @@ class DoubleDQNAgent(DQNAgent):
         n_step_q_online = self.target_network.predict(n_step_next)
         n_step_action_q_online = tf.math.argmax(n_step_q_online, axis=1)
         n_step_q_target = self.target_network.predict(n_step_next)
-        n_step_double_q = tf.reduce_sum(n_step_q_target * tf.one_hot(n_step_action_q_online, self.n_actions, 1.0, 0.0), axis=1)
+        n_step_double_q = tf.reduce_sum(n_step_q_target * tf.one_hot(n_step_action_q_online, self.n_actions, 1.0, 0.0),
+                                        axis=1)
 
         return double_q, n_step_double_q

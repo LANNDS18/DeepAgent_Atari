@@ -42,7 +42,7 @@ class ExperienceReplay(BaseBuffer):
 
     def get_n_step_sample(self, indices, gamma=0.99, n_step=10):
         assert n_step <= self.batch_size, f'Buffer size should be > {self.batch_size},  got {n_step}'
-        n_step_states, n_step_rewards, n_step_dones, n_step_next_states = [], [], [], []
+        n_step_rewards, n_step_dones, n_step_next_states = [], [], [],
         for index in indices:
             item = self._buffer[index]
             total_reward = item.reward
@@ -57,13 +57,11 @@ class ExperienceReplay(BaseBuffer):
                 next_done = next_item.done
                 next_state = next_item.new_state
 
-            n_step_states.append(tf.constant(item.state, tf.float32))
             n_step_rewards.append(tf.constant(total_reward, tf.float32))
             n_step_dones.append(tf.constant(next_done, tf.bool))
             n_step_next_states.append(tf.constant(next_state, tf.float32))
 
-        return tf.stack(n_step_states, axis=0), tf.stack(n_step_rewards, axis=0), \
-               tf.stack(n_step_dones, axis=0), tf.stack(n_step_next_states, axis=0)
+        return tf.stack(n_step_rewards, axis=0), tf.stack(n_step_dones, axis=0), tf.stack(n_step_next_states, axis=0)
 
     def __len__(self):
         return len(self._buffer)

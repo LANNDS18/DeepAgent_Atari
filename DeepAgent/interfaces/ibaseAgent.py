@@ -259,6 +259,7 @@ class OffPolicy(ABC):
         self.real_best_mean_reward = previous_history['best_mean_reward'][0]
         history_start_steps = previous_history['step'][0]
         history_start_time = previous_history['time'][0]
+        self.total_step = history_start_steps
         self.training_start_time = perf_counter() - history_start_time
         self.last_reset_step = self.total_step = int(history_start_steps)
         self.episode = previous_history['episode'][0]
@@ -377,8 +378,7 @@ class OffPolicy(ABC):
 
     def play(
             self,
-            test_env,
-            saving_path,
+            model_load_path,
             render=False,
             video_dir=None,
             frame_delay=0.0,
@@ -387,25 +387,26 @@ class OffPolicy(ABC):
         """
         Play and display a test_env.
         Args:
-            test_env: The env for testing the agent
-            saving_path: The path for loading the policy_network
+            model_load_path: The path for loading the policy_network
             video_dir: Path to directory to save the resulting test_env video.
             render: If True, the test_env will be displayed.
             frame_delay: Delay between rendered frames.
             max_episode: Maximum environment episode.
+        Return:
+            total_reward: List of reward for each episode
         """
-        self.saving_path = saving_path
+        self.saving_path = model_load_path
         self.load_model()
         episode = 0
         steps = 0
         episode_reward = 0
         total_reward = []
 
-        env = test_env
+        env = self.env
         state = env.reset()
 
         if video_dir:
-            env = gym.wrappers.Monitor(env, video_dir)
+            env = gym.wrappers.Monitor(env, video_dir, force=True)
             env.reset()
             if not os.path.exists(video_dir):
                 os.makedirs(video_dir)
@@ -441,13 +442,13 @@ class OffPolicy(ABC):
 
 class EpsDecayAgent(ABC):
 
-    def __init__(self, eps_schedule=None, ):
+    def __init__(self, eps_schedule=None,):
         if eps_schedule is None:
             self.eps_schedule = [[1.0, 0.1, 1000000], [0.1, 0.001, 5000000]]
         else:
             self.eps_schedule = eps_schedule
         self.epsilon = None
-        self.eps_schedule = np.array(eps_schedule)
+        self.eps_schedule = np.array(self.eps_schedule)
         self.eps_schedule[:, 2] = np.cumsum(self.eps_schedule[:, 2])
         self.eps_lag = 0
 

@@ -61,7 +61,7 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
         self.update_epsilon(total_step=self.total_step)
 
     @tf.function
-    def get_target(self, rewards, dones, next_states, n_step_rewards, n_step_dones, n_step_next,):
+    def get_target(self, rewards, dones, next_states, n_step_rewards, n_step_dones, n_step_next, ):
 
         """
         get target q for both single step and n_step
@@ -86,7 +86,7 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
         return target_q, n_target_q
 
     @tf.function
-    def update_gradient(self, target_q, n_step_target_q, states, n_step_states, actions, batch_weights=1):
+    def update_gradient(self, target_q, n_step_target_q, states, actions, batch_weights=1):
 
         """
         Update main q network by experience replay method.
@@ -96,7 +96,6 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             n_step_target_q (tf.int32): Target Q value after n_step.
 
             states (tf.float32): Batch of states.
-            n_step_states (tf.float32): Batch of after n_step states.
             actions (tf.int32): Batch of actions.
 
             batch_weights(tf.float32): weights of this batch.
@@ -143,17 +142,17 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             indices = self.buffer.get_sample_indices()
 
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
-            n_step_states, n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices,
-                                                                                                     gamma=self.gamma,
-                                                                                                     n_step=self.n_step)
+            n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices,
+                                                                                      gamma=self.gamma,
+                                                                                      n_step=self.n_step)
             target_q, n_step_target_q = self.get_target(rewards, dones, next_states,
                                                         n_step_rewards, n_step_dones, n_step_next)
 
-            self.update_gradient(target_q, n_step_target_q, states, n_step_states, actions)
+            self.update_gradient(target_q, n_step_target_q, states, actions)
 
     def at_step_end(self):
         if self.total_step % self.target_sync_freq == 0:
-            self.display_message("Synchronizing target network...")
+            self.display_message("Synchronizing target policy...")
             self.sync_target_model()
         self.env.render()
 
@@ -165,7 +164,8 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
         """
         Args:
             max_steps: Maximum number of total_step, if reached the training will stop.
-            target_reward: Target_reward: The target moving average reward, if reached the training will stop, if null will be ignored
+            target_reward: Target_reward: The target moving average reward, if reached the training will stop,
+            if null will be ignored
         """
         self.init_training(max_steps)
         while True:
