@@ -8,7 +8,7 @@ class BaseBuffer:
     Base class for replay buffer.
     """
 
-    def __init__(self, size, initial_size=None, batch_size=32):
+    def __init__(self, size, initial_size=None, batch_size=32, n_step=0):
         """
         Initialize replay buffer.
         Args:
@@ -29,6 +29,7 @@ class BaseBuffer:
             assert size >= initial_size, 'Buffer initial size exceeds max size'
         self.size = size
         self.batch_size = batch_size
+        self.n_step = n_step
         self.current_size = 0
 
     def append(self, *args):

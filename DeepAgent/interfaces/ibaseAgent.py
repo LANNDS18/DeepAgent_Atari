@@ -28,7 +28,6 @@ class OffPolicy(ABC):
             warm_up_episode=40,
             mean_reward_step=100,
             gamma=0.99,
-            n_step=10,
             frame_stack=4,
             model_update_freq=4,
             target_sync_freq=10000,
@@ -49,7 +48,7 @@ class OffPolicy(ABC):
         self.mean_reward_step = mean_reward_step
 
         self.gamma = gamma
-        self.n_step = n_step if n_step > 0 else 0
+        self.n_step = buffer.n_step if buffer.n_step else 0
         self.epsilon = None
 
         self.state = self.env.reset()
@@ -353,8 +352,9 @@ class OffPolicy(ABC):
             f'train_step() should be implemented by {self.__class__.__name__} subclasses'
         )
 
-    def at_step_end(self):
-        raise NotImplementedError
+    def at_step_end(self, render=False):
+        if render:
+            self.env.render()
 
     def learn(self, max_steps, target_reward=None, ):
         """

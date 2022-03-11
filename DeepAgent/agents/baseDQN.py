@@ -142,30 +142,30 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             indices = self.buffer.get_sample_indices()
 
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
-            n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices,
-                                                                                      gamma=self.gamma,
-                                                                                      n_step=self.n_step)
+            n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices, gamma=self.gamma)
             target_q, n_step_target_q = self.get_target(rewards, dones, next_states,
                                                         n_step_rewards, n_step_dones, n_step_next)
 
             self.update_gradient(target_q, n_step_target_q, states, actions)
 
-    def at_step_end(self):
+    def at_step_end(self, render=False):
         if self.total_step % self.target_sync_freq == 0:
             self.display_message("Synchronizing target policy...")
             self.sync_target_model()
-        self.env.render()
+        super().at_step_end(render=render)
 
     def learn(
             self,
             max_steps,
-            target_reward=None
+            target_reward=None,
+            render=False,
     ):
         """
         Args:
             max_steps: Maximum number of total_step, if reached the training will stop.
             target_reward: Target_reward: The target moving average reward, if reached the training will stop,
             if null will be ignored
+            render: display the env of training
         """
         self.init_training(max_steps)
         while True:
@@ -175,4 +175,4 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             while not self.done:
                 self.at_step_start()
                 self.train_step()
-                self.at_step_end()
+                self.at_step_end(render)

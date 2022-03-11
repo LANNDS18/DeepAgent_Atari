@@ -43,9 +43,7 @@ class D3NPERAgent(DoubleDQNAgent):
         if self.total_step % self.model_update_freq == 0:
             indices = self.buffer.get_sample_indices()
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
-            n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices,
-                                                                                      gamma=self.gamma,
-                                                                                      n_step=self.n_step)
+            n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices, gamma=self.gamma)
             target_q, n_step_target_q = self.get_target(rewards, dones, next_states,
                                                         n_step_rewards, n_step_dones, n_step_next)
 

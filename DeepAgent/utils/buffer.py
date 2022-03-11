@@ -20,9 +20,10 @@ class ExperienceReplay(BaseBuffer):
         self.current_size = len(self._buffer)
 
     def get_sample_indices(self):
+        assert self.current_size > self.n_step
         indices = []
         while len(indices) < self.batch_size:
-            index = np.random.randint(low=0, high=self.current_size - self.batch_size, dtype=np.int32)
+            index = np.random.randint(low=0, high=self.current_size - self.n_step, dtype=np.int32)
             indices.append(index)
         return indices
 
@@ -37,19 +38,19 @@ class ExperienceReplay(BaseBuffer):
             dones.append(tf.constant(item.done, tf.bool))
             new_states.append(tf.constant(item.new_state, tf.float32))
 
-        return tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0), tf.stack(dones, axis=0), \
-               tf.stack(new_states, axis=0)
+        return (tf.stack(states, axis=0), tf.stack(actions, axis=0), tf.stack(rewards, axis=0),
+                tf.stack(dones, axis=0), tf.stack(new_states, axis=0))
 
-    def get_n_step_sample(self, indices, gamma=0.99, n_step=10):
-        assert n_step <= self.batch_size, f'Buffer size should be > {self.batch_size},  got {n_step}'
-        n_step_rewards, n_step_dones, n_step_next_states = [], [], [],
+    def get_n_step_sample(self, indices, gamma=0.99):
+        n_step_rewards, n_step_dones, n_step_next_states = [], [], []
+
         for index in indices:
             item = self._buffer[index]
             total_reward = item.reward
             next_state = item.new_state
             next_done = item.done
 
-            for i in range(n_step):
+            for i in range(self.n_step):
                 next_item = self._buffer[index + i]
                 if next_done is True:
                     break
@@ -112,10 +113,11 @@ class PrioritizedExperienceReplay(ExperienceReplay):
             self.priorities[idx] = self.priorities.max()
         self.current_size = len(self._buffer)
 
+    # Todddo: fix
     def get_sample_indices(self):
-        probs = self.priorities ** self.prob_alpha
+        probs = self.priorities[:-self.n_step] ** self.prob_alpha
         probs /= probs.sum()
-        indices = np.random.choice(len(self._buffer),
+        indices = np.random.choice(self.current_size - self.n_step,
                                    self.batch_size,
                                    p=probs,
                                    replace=False)

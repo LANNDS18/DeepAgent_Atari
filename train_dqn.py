@@ -15,4 +15,8 @@ if __name__ == '__main__':
         agent=DQNAgent,
         train_id='DQN')
 
-    agent.learn(max_steps=_config.MAX_STEP, target_reward=_config.TARGET_REWARD)
+    agent.learn(
+        max_steps=_config.MAX_STEP,
+        target_reward=_config.TARGET_REWARD,
+        render=_config.RENDER,
+    )
