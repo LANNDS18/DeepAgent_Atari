@@ -60,7 +60,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
         target_network=_target,
         buffer=_buffer,
         gamma=config.GAMMA,
-        warm_up_episode=config.WARM_UP_EPISODE,
+        buffer_fill_size=config.BUFFER_FILL_SIZE,
         eps_schedule=config.EPS_SCHEDULE,
         target_sync_freq=config.TARGET_SYNC_FREQ,
         saving_model=config.SAVING_MODEL,

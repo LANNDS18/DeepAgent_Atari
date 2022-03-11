@@ -53,9 +53,9 @@ class BaseConfig(ABC):
     """
     Buffer Parameters
     """
-    BUFFER_SIZE = 300000
+    BUFFER_SIZE = 600000
     BATCH_SIZE = 32
-    WARM_UP_EPISODE = 100
+    BUFFER_FILL_SIZE = 50000
 
     '''
     Evaluation Parameters
@@ -89,25 +89,21 @@ class PongConfig(BaseConfig):
 
 class DemonAttackConfig(BaseConfig):
     USE_GPU = False
-    RENDER = False
 
-    MAX_STEP = 1e7
+    RENDER = False
     TARGET_REWARD = 8000
 
     ENV_NAME = 'DemonAttackNoFrameskip-v4'
     CROP = demon_attack_crop
 
-    LEARNING_RATE = [[3e-4, 2e-4, 1e6], [2.5e-4, 1e-4, 2e6]]
-    WARM_UP_EPISODE = 50
+    LEARNING_RATE = [[3e-4, 2.5e-4, 1e6], [2.5e-4, 1e-4, 2e6]]
 
     GAMMA = 0.99
     N_STEP = 10
     ONE_STEP_WEIGHT = 0.6
     N_STEP_WEIGHT = 0.4
-    EPS_SCHEDULE = [[1, 0.1, 1e6],
+    EPS_SCHEDULE = [[0.5, 0.1, 2e6],
                     [0.1, 0.01, 5e6],
-                    [0.1, 0.001, 10e6]]
+                    [0.01, 0.001, 10e6]]
 
     TARGET_SYNC_FREQ = 10000
-
-

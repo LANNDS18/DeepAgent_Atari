@@ -25,7 +25,7 @@ class OffPolicy(ABC):
             target_network,
             buffer,
             agent_id,
-            warm_up_episode=40,
+            buffer_fill_size=1000,
             mean_reward_step=100,
             gamma=0.99,
             frame_stack=4,
@@ -43,7 +43,8 @@ class OffPolicy(ABC):
         self.input_shape = self.env.observation_space.shape
 
         self.buffer = buffer
-        self.warm_up_episode = warm_up_episode
+        self.warm_up_episode = 0
+        self.buffer_fill_size = buffer_fill_size
         self.real_mean_reward_buffer = deque(maxlen=mean_reward_step)
         self.mean_reward_step = mean_reward_step
 
@@ -100,25 +101,26 @@ class OffPolicy(ABC):
         """
         episode = 0
         total_size = self.buffer.size
-        buffer = self.buffer
         state = self.env.reset()
-        while episode < self.warm_up_episode:
+        while self.buffer.current_size < self.buffer_fill_size:
             if not load:
                 action = self.env.action_space.sample()
             else:
                 action = np.argmax(self.policy_network.predict(tf.expand_dims(state, axis=0)))
             new_state, reward, done, _ = self.env.step(action)
-            buffer.append(state, action, reward, done, new_state)
+            self.buffer.append(state, action, reward, done, new_state)
             state = new_state
             if self.env.was_real_done:
                 state = self.env.reset()
                 episode += 1
-            filled = buffer.current_size
+            filled = self.buffer.current_size
             self.display_message(
                 f'\rFilling experience replay buffer => '
                 f'{filled}/{total_size}',
                 end='',
             )
+
+        self.warm_up_episode -= episode
         self.state = state
         self.display_message('')
         self.reset_env()
@@ -261,8 +263,8 @@ class OffPolicy(ABC):
         self.total_step = history_start_steps
         self.training_start_time = perf_counter() - history_start_time
         self.last_reset_step = self.total_step = int(history_start_steps)
-        self.episode = previous_history['episode'][0]
-        for i in range(self.episode):
+        self.warm_up_episode = previous_history['episode'][0]
+        for i in range(self.real_mean_reward_buffer.maxlen):
             self.real_mean_reward_buffer.append(self.real_mean_reward)
 
     def reset_episode_parameters(self):
@@ -281,7 +283,7 @@ class OffPolicy(ABC):
         for calculation of fps, and update mean and best reward. The policy_network is
         saved if there is a checkpoint path specified.
         """
-        self.episode = self.env.episode_count - self.warm_up_episode
+        self.episode = self.env.episode_count + self.warm_up_episode
         self.real_episode_score = self.env.episode_returns
         self.real_mean_reward_buffer.append(self.real_episode_score)
 
@@ -442,7 +444,7 @@ class OffPolicy(ABC):
 
 class EpsDecayAgent(ABC):
 
-    def __init__(self, eps_schedule=None,):
+    def __init__(self, eps_schedule=None, ):
         if eps_schedule is None:
             self.eps_schedule = [[1.0, 0.1, 1000000], [0.1, 0.001, 5000000]]
         else:
