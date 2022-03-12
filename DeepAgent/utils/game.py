@@ -1,10 +1,9 @@
-import cv2
-import numpy as np
 import gym
+import numpy as np
 
 from gym import spaces
-from DeepAgent.utils.common import process_frame, LazyFrames
 from collections import deque
+from DeepAgent.utils.common import process_frame, LazyFrames
 
 
 class PendingFire(gym.Wrapper):
@@ -171,15 +170,38 @@ class ResizeEnv(gym.ObservationWrapper):
         return frame
 
 
+class StepLimit(gym.Wrapper):
+    """
+        Limit the length of episode be limited
+    """
+
+    def __init__(self, env, limit=20000):
+        self.limit = limit
+        self.step_count = 0
+        super().__init__(env)
+
+    def reset(self, **kwargs):
+        self.step_count = 0
+        return self.env.reset(**kwargs)
+
+    def step(self, action):
+        observation, reward, done, info = self.env.step(action)
+        self.step_count += 1
+        if self.step_count >= self.limit:
+            done = True
+        return observation, reward, done, info
+
+
 class ClipReward(gym.Wrapper):
     """
         The probability of negative reward (or done) is much less than positive.
         Therefore, clip reward in [-1, 1] scale then lower the reward which is positive
     """
 
-    def __init__(self, env):
+    def __init__(self, env, eps=1e-7):
         self.done = None
         self.lives = env.unwrapped.ale.lives()
+        self.epsilon = eps
         super(ClipReward, self).__init__(env)
 
     def reset(self, **kwargs):
@@ -189,9 +211,14 @@ class ClipReward(gym.Wrapper):
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
         self.done = done
-        if done:
-            reward = -1
-        return observation, np.sign(reward), done, info
+        reward = self.get_reward(reward)
+        return observation, reward, done, info
+
+    def get_reward(self, reward):
+        reward = -1 if self.done else np.sign(reward)
+        if reward == 0:
+            reward = -self.epsilon
+        return reward
 
 
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
@@ -205,6 +232,7 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, trai
     if train:
         env = EpisodicLifeEnv(env)
         env = ClipReward(env)
+    env = StepLimit(env)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
     return env

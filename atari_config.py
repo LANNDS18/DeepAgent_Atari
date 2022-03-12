@@ -38,7 +38,7 @@ class DemonAttackConfig(BaseConfig):
     ENV_NAME = 'DemonAttackNoFrameskip-v4'
     CROP = demon_attack_crop
 
-    LEARNING_RATE = [[3e-4, 2.5e-4, 1e6], [2.5e-4, 1e-4, 2e6]]
+    LEARNING_RATE = [[5e-4, 2.5e-4, 1e6]]
 
     GAMMA = 0.99
     N_STEP = 10
@@ -49,6 +49,8 @@ class DemonAttackConfig(BaseConfig):
                     [0.01, 0.001, 5e6]]
 
     TARGET_SYNC_FREQ = 10000
+    SAVING_MODEL = True
+    LOG_HISTORY = True
 
     MODEL_LOAD_PATH = './models/DQN_DemonAttackNoFrameskip-v4'
     VIDEO_DIR = './video/DemonAttackDQN'

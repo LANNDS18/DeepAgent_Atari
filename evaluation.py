@@ -7,7 +7,7 @@ from DeepAgent.policy.cnnPolicy import CNN
 from atari_config import PongConfig, DemonAttackConfig
 
 
-config = PongConfig
+config = DemonAttackConfig
 
 test_dqn_agent = testWrapper(
     config=config,
