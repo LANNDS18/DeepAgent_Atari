@@ -6,11 +6,11 @@ from keras.initializers.initializers_v2 import VarianceScaling
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
 
 
-class Dueling(BaseNNPolicy):
+class DuelingPolicy(BaseNNPolicy):
 
     def __init__(self, **kwargs):
 
-        super(Dueling, self).__init__(**kwargs)
+        super(DuelingPolicy, self).__init__(**kwargs)
 
     def build(self):
 

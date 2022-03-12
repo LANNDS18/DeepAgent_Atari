@@ -1,4 +1,4 @@
-from DeepAgent.interfaces.IBaseConfig import BaseConfig
+from DeepAgent.interfaces.ibaseConfig import BaseConfig
 from DeepAgent.utils.common import pong_crop, demon_attack_crop
 
 

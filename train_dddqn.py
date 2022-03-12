@@ -1,4 +1,4 @@
-from DeepAgent.policy.duelingPolicy import Dueling
+from DeepAgent.policy.duelingPolicy import DuelingPolicy
 from DeepAgent.agents.doubleDQN import DoubleDQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
@@ -12,7 +12,7 @@ if __name__ == '__main__':
         config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,
-        policy=Dueling,
+        policy=DuelingPolicy,
         agent=DoubleDQNAgent,
         train_id='DDDQN')
 

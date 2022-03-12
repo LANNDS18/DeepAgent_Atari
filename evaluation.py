@@ -1,8 +1,8 @@
-from DeepAgent.agents.baseDQN import DQNAgent
+from DeepAgent.agents.dqn import DQNAgent
 from DeepAgent.utils.game import GameEnv
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.train_evaluation_wrapper import testWrapper
-from DeepAgent.policy.cnnPolicy import CNN
+from DeepAgent.policy.cnnPolicy import CNNPolicy
 
 from atari_config import PongConfig, DemonAttackConfig
 
@@ -13,7 +13,7 @@ test_dqn_agent = testWrapper(
     config=config,
     agent=DQNAgent,
     env=GameEnv,
-    policy=CNN,
+    policy=CNNPolicy,
     buffer=ExperienceReplay,
     test_id=config.ENV_NAME
 )

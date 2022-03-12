@@ -6,11 +6,11 @@ from keras.initializers.initializers_v2 import VarianceScaling
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
 
 
-class CNN(BaseNNPolicy):
+class CNNPolicy(BaseNNPolicy):
 
     def __init__(self, **kwargs):
 
-        super(CNN, self).__init__(**kwargs)
+        super(CNNPolicy, self).__init__(**kwargs)
 
     def build(self):
 

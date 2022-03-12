@@ -1,5 +1,5 @@
-from DeepAgent.policy.cnnPolicy import CNN
-from DeepAgent.agents.baseDQN import DQNAgent
+from DeepAgent.policy.cnnPolicy import CNNPolicy
+from DeepAgent.agents.dqn import DQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from DeepAgent.utils.train_evaluation_wrapper import trainWrapper
@@ -11,7 +11,7 @@ if __name__ == '__main__':
         config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,
-        policy=CNN,
+        policy=CNNPolicy,
         agent=DQNAgent,
         train_id='DQN')
 
