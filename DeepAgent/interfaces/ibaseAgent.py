@@ -385,6 +385,7 @@ class OffPolicy(ABC):
             video_dir=None,
             frame_delay=0.0,
             max_episode=100,
+            epsilon=0.0001
     ):
         """
         Play and display a test_env.
@@ -394,6 +395,7 @@ class OffPolicy(ABC):
             render: If True, the test_env will be displayed.
             frame_delay: Delay between rendered frames.
             max_episode: Maximum environment episode.
+            epsilon: The rate that agent would choose a random action
         Return:
             total_reward: List of reward for each episode
         """
@@ -420,7 +422,11 @@ class OffPolicy(ABC):
 
             # Greedy choose
             state = tf.expand_dims(state, axis=0)
-            action = np.argmax(self.policy_network.predict(state))
+            if tf.random.uniform((), minval=0, maxval=1, dtype=tf.float32) < epsilon:
+                action = tf.random.uniform((), minval=0, maxval=self.n_actions, dtype=tf.int32)
+            else:
+                action = self.policy_network.get_optimal_actions(tf.cast(state, tf.float32))
+
             state, reward, done, _ = env.step(action)
             episode_reward += reward
             if done:

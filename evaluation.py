@@ -1,26 +1,28 @@
 from DeepAgent.agents.baseDQN import DQNAgent
 from DeepAgent.utils.game import GameEnv
 from DeepAgent.utils.buffer import ExperienceReplay
+from DeepAgent.utils.train_evaluation_wrapper import testWrapper
 from DeepAgent.policy.cnnPolicy import CNN
 
-from config import PongConfig
-from TrainEvaluationWrapper import testWrapper
+from atari_config import PongConfig, DemonAttackConfig
 
 
-test_dqn_pong = testWrapper(
-    config=PongConfig,
+config = PongConfig
+
+test_dqn_agent = testWrapper(
+    config=config,
     agent=DQNAgent,
     env=GameEnv,
     policy=CNN,
     buffer=ExperienceReplay,
-    test_id='PongDQN'
+    test_id=config.ENV_NAME
 )
 
-test_dqn_pong.play(
-    model_load_path='./models/DQN_PongNoFrameskip-v4',
+test_dqn_agent.play(
+    model_load_path=config.MODEL_LOAD_PATH,
     render=True,
-    video_dir='./video',
-    max_episode=PongConfig.TEST_MAX_EPISODE
+    video_dir=config.VIDEO_DIR,
+    max_episode=DemonAttackConfig.TEST_MAX_EPISODE
 )
 
 

@@ -10,7 +10,13 @@ def use_gpu(use=False):
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 
-def trainWrapper(config, env, buffer, network, agent, train_id):
+def trainWrapper(config, env, buffer, policy, agent, train_id):
+    """
+    The wrapper can be used to read and pass configuration to specific environment, buffer, policy, and agent.
+
+    Return:
+        _agent: an OffPolicy agent that has been init, and call learn() to train the NN of this agent.
+    """
     use_gpu(config.USE_GPU)
 
     _env = env(
@@ -27,7 +33,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
         n_step=config.N_STEP,
     )
 
-    _policy = network(
+    _main = policy(
         conv_layers=config.CONV_LAYERS,
         dense_layers=None,
         input_shape=config.IMAGE_SHAPE,
@@ -40,7 +46,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
         l2_weight=0.0
     )
 
-    _target = network(
+    _target = policy(
         conv_layers=config.CONV_LAYERS,
         dense_layers=None,
         input_shape=config.IMAGE_SHAPE,
@@ -56,7 +62,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
     _agent = agent(
         agent_id=train_id,
         env=_env,
-        policy_network=_policy,
+        policy_network=_main,
         target_network=_target,
         buffer=_buffer,
         gamma=config.GAMMA,
@@ -68,7 +74,7 @@ def trainWrapper(config, env, buffer, network, agent, train_id):
     )
 
     assert isinstance(_agent, ibaseAgent.OffPolicy)
-    assert isinstance(_policy, ibasePolicy.BaseNNPolicy)
+    assert isinstance(_main, ibasePolicy.BaseNNPolicy)
     assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
     assert isinstance(_env, Wrapper)
 

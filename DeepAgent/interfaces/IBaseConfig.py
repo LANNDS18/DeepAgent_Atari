@@ -1,10 +1,14 @@
 from abc import ABC
 from keras.optimizer_v2.adam import Adam
 from keras.initializers.initializers_v2 import VarianceScaling
-from DeepAgent.utils.common import pong_crop, demon_attack_crop
 
 
 class BaseConfig(ABC):
+    """
+    The base config can be used by train_evaluation_wrapper in DeepAgent.utils, please override the attributes in
+    implementation.
+    """
+
     USE_GPU = False
 
     '''Training parameters'''
@@ -32,8 +36,8 @@ class BaseConfig(ABC):
                     [0.2, 0.1, 1e6]]
 
     TARGET_SYNC_FREQ = 10000
-    SAVING_MODEL = True
-    LOG_HISTORY = True
+    SAVING_MODEL = False
+    LOG_HISTORY = False
 
     '''
     Network Parameters
@@ -63,47 +67,5 @@ class BaseConfig(ABC):
     TEST_BUFFER_SIZE = 10
     TEST_BATCH_SIZE = 1
     TEST_MAX_EPISODE = 10
-
-
-class PongConfig(BaseConfig):
-    USE_GPU = False
-    RENDER = True
-
-    TARGET_REWARD = 20
-
-    ENV_NAME = 'PongNoFrameskip-v4'
-    CROP = pong_crop
-
-    LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
-
-    GAMMA = 0.99
-    N_STEP = 10
-    ONE_STEP_WEIGHT = 0.5
-    N_STEP_WEIGHT = 0.5
-    EPS_SCHEDULE = [[1, 0.2, 1e5],
-                    [0.2, 0.1, 1e6],
-                    [0.1, 0.01, 2e6]]
-
-    TARGET_SYNC_FREQ = 10000
-
-
-class DemonAttackConfig(BaseConfig):
-    USE_GPU = False
-
-    RENDER = False
-    TARGET_REWARD = 8000
-
-    ENV_NAME = 'DemonAttackNoFrameskip-v4'
-    CROP = demon_attack_crop
-
-    LEARNING_RATE = [[3e-4, 2.5e-4, 1e6], [2.5e-4, 1e-4, 2e6]]
-
-    GAMMA = 0.99
-    N_STEP = 10
-    ONE_STEP_WEIGHT = 0.6
-    N_STEP_WEIGHT = 0.4
-    EPS_SCHEDULE = [[0.5, 0.1, 2e6],
-                    [0.1, 0.01, 5e6],
-                    [0.01, 0.001, 10e6]]
-
-    TARGET_SYNC_FREQ = 10000
+    MODEL_LOAD_PATH = None
+    VIDEO_DIR = None

@@ -2,8 +2,9 @@ from DeepAgent.policy.duelingPolicy import Dueling
 from DeepAgent.agents.doubleDQN import DoubleDQNAgent
 from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
-from TrainEvaluationWrapper import trainWrapper
-from config import PongConfig, DemonAttackConfig
+from DeepAgent.utils.train_evaluation_wrapper import trainWrapper
+
+from atari_config import DemonAttackConfig
 
 if __name__ == '__main__':
     _config = DemonAttackConfig
@@ -11,7 +12,7 @@ if __name__ == '__main__':
         config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,
-        network=Dueling,
+        policy=Dueling,
         agent=DoubleDQNAgent,
         train_id='DDDQN')
 
