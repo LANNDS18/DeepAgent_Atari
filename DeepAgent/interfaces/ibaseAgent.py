@@ -310,10 +310,9 @@ class OffPolicy(ABC):
         if self.episode % self.validation_freq == 0:
             self.reset_env()
             done = False
-            while done:
+            while not done:
                 action = self.get_action(tf.constant(self.state), tf.constant(self.epsilon, tf.float32))
-                trans = self.env.step(action)
-                print(trans[1])
+                self.env.step(action)
                 done = self.env.was_real_done
             reward = self.env.episode_returns
             if reward > self.validation_score:
