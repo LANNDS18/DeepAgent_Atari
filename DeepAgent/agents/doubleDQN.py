@@ -38,15 +38,16 @@ class DoubleDQNAgent(DQNAgent):
             n_step_dones (tf.bool): Batch of terminal status after n_step.
             n_step_next (tf.float32): Batch of after n_step states.
         """
-        q_online = self.policy_network.predict(next_states)
-        action_q_online = tf.math.argmax(q_online, axis=1)
-        q_target = self.target_network.predict(next_states)
-        double_q = tf.reduce_sum(q_target * tf.one_hot(action_q_online, self.n_actions, 1.0, 0.0), axis=1)
+        action_online = tf.math.argmax(self.policy_network.predict(next_states), axis=1)
+        double_q = tf.reduce_sum(self.target_network.predict(next_states)
+                                 * tf.one_hot(action_online, self.n_actions, 1.0, 0.0), axis=1)
 
-        n_step_q_online = self.target_network.predict(n_step_next)
-        n_step_action_q_online = tf.math.argmax(n_step_q_online, axis=1)
-        n_step_q_target = self.target_network.predict(n_step_next)
-        n_step_double_q = tf.reduce_sum(n_step_q_target * tf.one_hot(n_step_action_q_online, self.n_actions, 1.0, 0.0),
-                                        axis=1)
+        target_q = rewards + self.gamma * double_q * (1.0 - tf.cast(dones, tf.float32))
 
-        return double_q, n_step_double_q
+        n_step_action_online = tf.math.argmax(self.target_network.predict(n_step_next), axis=1)
+        n_step_double_q = tf.reduce_sum(self.target_network.predict(n_step_next)
+                                        * tf.one_hot(n_step_action_online, self.n_actions, 1.0, 0.0), axis=1)
+
+        n_target_q = n_step_rewards + self.gamma * n_step_double_q * (1.0 - tf.cast(n_step_dones, tf.float32))
+
+        return target_q, n_target_q
