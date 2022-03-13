@@ -8,7 +8,7 @@ setup(
     description='A Deep Reinforcement Learning Framework',
     author='Wuwei Zhang',
     author_email='sgwzha23@liverpool.ac.uk',
-    url='https://github.com/LANNDS18/DeepRL_DemonAttack',
+    url='https://github.com/LANNDS18/DeepAgent_Atari',
 
     python_requires='>=3.8',
     install_requires=[

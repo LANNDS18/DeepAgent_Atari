@@ -33,6 +33,7 @@ class OffPolicy(ABC):
             target_sync_freq=10000,
             saving_model=False,
             log_history=False,
+            validation_freq=100,
             quiet=False,
     ):
         self.env = env
@@ -93,6 +94,9 @@ class OffPolicy(ABC):
                 "%Y%m%d-%H%M%S")
             self.summary_writer = tf.summary.create_file_writer(self.train_log_dir)
 
+        self.validation_freq = validation_freq
+        self.validation_score = 0
+
         self.reset_env()
 
     def fill_buffer(self, load=False):
@@ -145,15 +149,15 @@ class OffPolicy(ABC):
         """
         self.state = self.env.reset()
 
-    def save_model(self):
+    def save_model(self, path):
         """
         Save policy_network weight to checkpoint
         """
         if self.saving_model:
             self.display_message('Saving Weights...')
-            self.policy_network.save(self.saving_path + '/main/')
-            self.target_network.save(self.saving_path + '/target/')
-            self.display_message(f'Successfully saving to {self.saving_path}')
+            self.policy_network.save(path + '/main/')
+            self.target_network.save(path + '/target/')
+            self.display_message(f'Successfully saving to {path}')
 
     def load_model(self):
         """
@@ -213,10 +217,9 @@ class OffPolicy(ABC):
             finish = True
 
         if finish:
-            self.saving_path = self.saving_path + '/end'
-            os.makedirs(self.saving_path, exist_ok=True)
-            self.history_dict_path = self.saving_path + '/history_check_point.json'
-            self.update_history()
+            saving_path = self.saving_path + '/end'
+            os.makedirs(saving_path, exist_ok=True)
+            self.update_history(model_path=saving_path)
             return True
         return False
 
@@ -232,7 +235,7 @@ class OffPolicy(ABC):
         self.loss_metric.reset_states()
         self.q_metric.reset_states()
 
-    def update_history(self, model=True):
+    def update_history(self, model_path):
         """
         Write 1 episode stats to checkpoint and write policy_network when it crosses interval.
         """
@@ -244,9 +247,8 @@ class OffPolicy(ABC):
             'time': [perf_counter() - self.training_start_time],
             'episode': [self.episode]
         }
-        write_from_dict(data, path=self.history_dict_path)
-        if model:
-            self.save_model()
+        write_from_dict(data, path=model_path + '/history_check_point.json')
+        self.save_model(model_path)
 
     def load_history_from_path(self):
         """
@@ -302,7 +304,28 @@ class OffPolicy(ABC):
             )
             self.real_best_mean_reward = self.real_mean_reward
             if self.saving_model:
-                self.update_history()
+                self.update_history(model_path=self.saving_path)
+
+    def validation(self):
+        if self.episode % self.validation_freq == 0:
+            self.reset_env()
+            done = False
+            while done:
+                action = self.get_action(tf.constant(self.state), tf.constant(self.epsilon, tf.float32))
+                trans = self.env.step(action)
+                print(trans[1])
+                done = self.env.was_real_done
+            reward = self.env.episode_returns
+            if reward > self.validation_score:
+                self.display_message(
+                    f'Best Validation score Updated: {colored(str(self.validation_score), "magenta")} -> '
+                    f'{colored(str(reward), "yellow")}'
+                )
+                self.validation_score = reward
+                saving_path = self.saving_path + '/valid'
+                os.makedirs(saving_path, exist_ok=True)
+                self.update_history(model_path=saving_path)
+            self.warm_up_episode += 1
 
     def check_episodes(self):
         """
@@ -310,6 +333,7 @@ class OffPolicy(ABC):
         """
         if self.done:
             self.update_training_parameters()
+            self.validation()
             if self.log_history:
                 self.record_tensorboard()
             self.display_learning_state()
@@ -341,9 +365,16 @@ class OffPolicy(ABC):
             self.episode = 1
         self.fill_buffer(load=load)
 
+    def get_action(self, state, epsilon):
+        raise NotImplementedError(
+            f'get_action() should be implemented by {self.__class__.__name__} subclasses'
+        )
+
     def at_step_start(self):
         self.total_step += 1
-        raise NotImplementedError
+        raise NotImplementedError(
+            f'at_step_start() should be implemented by {self.__class__.__name__} subclasses'
+        )
 
     def train_step(self):
         """

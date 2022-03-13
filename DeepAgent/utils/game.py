@@ -198,27 +198,17 @@ class ClipReward(gym.Wrapper):
         Therefore, clip reward in [-1, 1] scale then lower the reward which is positive
     """
 
-    def __init__(self, env, eps=1e-7):
-        self.done = None
-        self.lives = env.unwrapped.ale.lives()
-        self.epsilon = eps
+    def __init__(self, env):
         super(ClipReward, self).__init__(env)
 
     def reset(self, **kwargs):
-        self.lives = self.env.unwrapped.ale.lives()
         return self.env.reset(**kwargs)
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        self.done = done
-        reward = self.get_reward(reward)
-        return observation, reward, done, info
-
-    def get_reward(self, reward):
-        reward = -1 if self.done else np.sign(reward)
-        if reward == 0:
-            reward = -self.epsilon
-        return reward
+        if done:
+            reward = -1
+        return observation, np.sign(reward), done, info
 
 
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
