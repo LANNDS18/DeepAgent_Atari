@@ -313,7 +313,7 @@ class OffPolicy(ABC):
                 self.check_and_create_path(path)
                 self.update_history(model_path=path)
 
-    def validation(self, epsilon=0, validation_episode=4.0, max_step=8000):
+    def validation(self, epsilon=0, validation_episode=4, max_step=8000):
         if self.episode % self.validation_freq != 0 or self.episode <= self.mean_reward_step:
             return
         self.display_message(f'Validation model with {validation_episode} episodes...')
@@ -329,7 +329,7 @@ class OffPolicy(ABC):
                 step += 1
             total_reward += self.env.episode_returns
 
-        self.validation_score = total_reward / validation_episode
+        self.validation_score = total_reward / float(validation_episode)
         if self.validation_score > self.max_validation_score:
             self.display_message(
                 f'Best Validation score Updated: {colored(str(self.max_validation_score), "magenta")} -> '
@@ -444,7 +444,7 @@ class OffPolicy(ABC):
             total_reward: List of reward for each episode
         """
         self.saving_path = model_load_path
-        path = self.saving_path + '/valid'
+        path = self.saving_path
         self.load_model(path)
         episode = 0
         steps = 0
@@ -455,7 +455,7 @@ class OffPolicy(ABC):
         state = env.reset()
 
         if video_dir:
-            env = gym.wrappers.Monitor(env, video_dir, force=True)
+            env = gym.wrappers.RecordVideo(env, video_folder=video_dir, )
             env.reset()
             if not os.path.exists(video_dir):
                 os.makedirs(video_dir)
@@ -485,11 +485,9 @@ class OffPolicy(ABC):
 
                 if max_episode and episode >= max_episode:
                     self.display_message(f'Maximum total_step {max_episode} exceeded')
-                    env.close()
                     break
             steps += 1
         env.close()
-        env.__exit__()
         return total_reward
 
 
