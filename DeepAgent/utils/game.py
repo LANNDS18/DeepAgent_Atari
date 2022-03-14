@@ -190,30 +190,6 @@ class StepLimit(gym.Wrapper):
         return observation, reward, done, info
 
 
-class ClipReward(gym.Wrapper):
-    """
-        The probability of negative reward (or done) is much less than positive.
-        Therefore, clip reward in [-1, 1] scale then lower the reward which is positive
-    """
-
-    def __init__(self, env):
-        super(ClipReward, self).__init__(env)
-
-    def reset(self, **kwargs):
-        return self.env.reset(**kwargs)
-
-    def step(self, action):
-        observation, reward, done, info = self.env.step(action)
-        if done:
-            reward = -1
-        reward = np.sign(reward)
-        if reward > 0:
-            reward = 0.5
-        else:
-            reward -= 1e-7
-        return observation, reward, done, info
-
-
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
     env = gym.make(env_name)
     assert 'NoFrameskip' in env.spec.id
@@ -222,9 +198,7 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, trai
     env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     env = NoopResetEnv(env, noop_max=10)
     env = MaxAndSkipEnv(env, skip=4)
-    if train:
-        env = EpisodicLifeEnv(env)
-        env = ClipReward(env)
+    env = EpisodicLifeEnv(env)
     env = StepLimit(env)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
@@ -234,8 +208,16 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, trai
 class GameEnv(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
-    def __init__(self, env_name, output_shape=(84, 84), frame_stack=4, crop=lambda x: x, train=True):
+    def __init__(self,
+                 env_name,
+                 output_shape=(84, 84),
+                 frame_stack=4,
+                 crop=lambda x: x,
+                 reward_processor=lambda x: x,
+                 train=True
+                 ):
         env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=output_shape, train=train, crop=crop)
+        self.reward_processor = reward_processor
         self.id = env_name
         self.env = env
         super().__init__(env)
@@ -259,5 +241,8 @@ class GameEnv(gym.Wrapper):
             info: other information
         """
         next_state, reward, done, info = self.env.step(action)
+        if done:
+            reward = -1
+        reward = self.reward_processor(reward)
         next_state = np.array(next_state)
         return next_state, reward, done, info

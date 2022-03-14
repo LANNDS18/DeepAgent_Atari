@@ -4,10 +4,10 @@ from DeepAgent.utils.buffer import ExperienceReplay
 from DeepAgent.utils.game import GameEnv
 from DeepAgent.utils.train_evaluation_wrapper import trainWrapper
 
-from atari_config import DemonAttackConfig
+from atari_config import DemonAttackConfig, PongConfig
 
 if __name__ == '__main__':
-    _config = DemonAttackConfig
+    _config = PongConfig
     agent = trainWrapper(
         config=_config,
         env=GameEnv,

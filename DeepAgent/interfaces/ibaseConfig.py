@@ -21,6 +21,7 @@ class BaseConfig(ABC):
     IMAGE_SHAPE = (84, 84)
     ENV_NAME = None
     CROP = None
+    REWARD_PROCESSOR = None
 
     '''
     Learning rate decay policy

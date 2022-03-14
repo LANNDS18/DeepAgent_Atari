@@ -69,15 +69,6 @@ def process_frame(frame, shape=(84, 84), crop=None):
     return frame
 
 
-"""
-Crop the Original Image Size for Atari Games
-"""
-def pong_crop(x): return x[30:-10, :]
-
-
-def demon_attack_crop(x): return x[20:-20, :]
-
-
 # plot reward
 def plot_rewards(rewards, title):
     plt.figure(figsize=(10, 5))

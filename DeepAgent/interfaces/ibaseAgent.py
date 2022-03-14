@@ -316,18 +316,19 @@ class OffPolicy(ABC):
     def validation(self, epsilon=0, validation_episode=4, max_step=8000):
         if self.episode % self.validation_freq != 0 or self.episode <= self.mean_reward_step:
             return
+        env = self.env
         self.display_message(f'Validation model with {validation_episode} episodes...')
         total_reward = 0.0
         for i in range(validation_episode):
-            self.reset_env()
+            state = env.reset()
             done = False
             step = 0
             while not done and step < max_step:
-                action = self.get_action(tf.constant(self.state), tf.constant(epsilon, tf.float32))
-                self.env.step(action)
-                done = self.env.was_real_done
+                action = self.get_action(tf.constant(state), tf.constant(epsilon, tf.float32))
+                state, _, _, _ = env.step(action)
+                done = env.was_real_done
                 step += 1
-            total_reward += self.env.episode_returns
+            total_reward += env.episode_returns
 
         self.validation_score = total_reward / float(validation_episode)
         if self.validation_score > self.max_validation_score:
@@ -336,9 +337,10 @@ class OffPolicy(ABC):
                 f'{colored(str(self.validation_score), "yellow")}'
             )
             self.max_validation_score = self.validation_score
-            saving_path = self.saving_path + '/valid'
-            self.check_and_create_path(saving_path)
-            self.update_history(model_path=saving_path)
+            if self.saving_path:
+                saving_path = self.saving_path + '/valid'
+                self.check_and_create_path(saving_path)
+                self.update_history(model_path=saving_path)
 
     def check_episodes(self):
         """
@@ -448,7 +450,6 @@ class OffPolicy(ABC):
         self.load_model(path)
         episode = 0
         steps = 0
-        episode_reward = 0
         total_reward = []
 
         env = self.env
@@ -472,15 +473,12 @@ class OffPolicy(ABC):
             else:
                 action = self.policy_network.get_optimal_actions(tf.cast(state, tf.float32))
 
-            state, reward, done, _ = env.step(action)
-            episode_reward += reward
-            if done:
+            state, _, _, _ = env.step(action)
+            if self.env.was_real_done:
+                episode_reward = self.env.episode_returns
                 total_reward.append(episode_reward)
                 self.display_message(f'Episode: {episode}, Episode Reward: {episode_reward}')
-
                 episode += 1
-                episode_reward = 0
-
                 state = env.reset()
 
                 if max_episode and episode >= max_episode:

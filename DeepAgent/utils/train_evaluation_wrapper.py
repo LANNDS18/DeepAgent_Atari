@@ -24,7 +24,8 @@ def trainWrapper(config, env, buffer, policy, agent, train_id):
         output_shape=config.IMAGE_SHAPE,
         frame_stack=config.FRAME_STACK,
         train=True,
-        crop=config.CROP
+        crop=config.CROP,
+        reward_processor=config.REWARD_PROCESSOR
     )
 
     _buffer = buffer(
