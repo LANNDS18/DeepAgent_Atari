@@ -1,5 +1,5 @@
 import numpy as np
-from DeepAgent.interfaces.ibaseConfig import BaseConfig
+from DeepAgent.interfaces import BaseConfig
 
 """
 Crop the Original Image Size for Atari Games
@@ -48,7 +48,7 @@ class PongConfig(BaseConfig):
     SAVING_MODEL = True
     LOG_HISTORY = True
 
-    MODEL_LOAD_PATH = './models/DQN_PongNoFrameskip-v4'
+    MODEL_LOAD_PATH = './models/DDDQN_PongNoFrameskip-v4/best'
     VIDEO_DIR = './video/PongDQN'
 
 

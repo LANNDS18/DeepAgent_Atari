@@ -1,8 +1,6 @@
-from DeepAgent.policy.duelingPolicy import DuelingPolicy
-from DeepAgent.agents.doubleDQN import DoubleDQNAgent
-from DeepAgent.utils.buffer import ExperienceReplay
-from DeepAgent.utils.game import GameEnv
-from DeepAgent.utils.train_evaluation_wrapper import trainWrapper
+from DeepAgent.policy import DuelingPolicy
+from DeepAgent.agents import DoubleDQNAgent
+from DeepAgent.utils import ExperienceReplay, GameEnv, trainWrapper
 
 from atari_config import DemonAttackConfig, PongConfig
 

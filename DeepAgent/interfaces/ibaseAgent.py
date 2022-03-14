@@ -1,3 +1,4 @@
+import json
 import os
 import gym
 import numpy as np
@@ -10,7 +11,6 @@ from collections import deque
 from datetime import timedelta, datetime
 from time import perf_counter, sleep
 from termcolor import colored
-from DeepAgent.utils.common import write_from_dict
 
 
 class OffPolicy(ABC):
@@ -99,6 +99,31 @@ class OffPolicy(ABC):
 
         self.reset_env()
 
+    def display_message(self, *args, **kwargs):
+        """
+        Display messages to the console.
+        Args:
+            *args: args passed to print()
+            **kwargs: kwargs passed to print()
+        """
+        if not self.quiet:
+            print(*args, **kwargs)
+
+    @staticmethod
+    def check_and_create_path(path):
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+    @staticmethod
+    def write_from_dict(_dict, path):
+        """
+        Args:
+            _dict: Dictionary of label: [scalar]
+            path: Path to .json file.
+        """
+        with open(path, 'w') as fp:
+            json.dump(_dict, fp)
+
     def fill_buffer(self, load=False):
         """
         Fill replay buffer up to its initial size.
@@ -128,21 +153,6 @@ class OffPolicy(ABC):
         self.display_message('')
         self.reset_env()
 
-    def display_message(self, *args, **kwargs):
-        """
-        Display messages to the console.
-        Args:
-            *args: args passed to print()
-            **kwargs: kwargs passed to print()
-        """
-        if not self.quiet:
-            print(*args, **kwargs)
-
-    @staticmethod
-    def check_and_create_path(path):
-        if not os.path.exists(path):
-            os.makedirs(path)
-
     def reset_env(self):
         """
         Reset env with no return
@@ -170,6 +180,7 @@ class OffPolicy(ABC):
 
     def sync_target_model(self):
         """Synchronize weights of target network by those of main network."""
+        self.display_message("Synchronizing target model...")
         self.target_network.model.set_weights(self.policy_network.model.get_weights())
 
     def display_learning_state(self):
@@ -207,20 +218,14 @@ class OffPolicy(ABC):
         Returns:
             bool
         """
-        finish = False
         if self.max_steps and self.total_step >= self.max_steps:
             self.display_message(f'Maximum total_step exceeded')
-            finish = True
-
-        if self.target_reward is not None and self.real_mean_reward >= self.target_reward:
-            self.display_message(f'Reach Target reward{self.target_reward}, early stop')
-            finish = True
-
-        if finish:
-            saving_path = self.saving_path + '/end'
-            self.check_and_create_path(saving_path)
-            self.update_history(model_path=saving_path)
             return True
+
+        if self.target_reward is not None and self.real_mean_reward > self.target_reward:
+            self.display_message(f'Reach Target reward{self.target_reward}, early stop')
+            return True
+
         return False
 
     def record_tensorboard(self):
@@ -249,7 +254,7 @@ class OffPolicy(ABC):
             'episode': [self.episode],
             'best_validation': [self.max_validation_score],
         }
-        write_from_dict(data, path=model_path + '/history_check_point.json')
+        self.write_from_dict(data, path=model_path + '/history_check_point.json')
         self.save_model(model_path)
 
     def load_history_from_path(self, path):
@@ -313,7 +318,7 @@ class OffPolicy(ABC):
                 self.check_and_create_path(path)
                 self.update_history(model_path=path)
 
-    def validation(self, epsilon=0, validation_episode=4, max_step=8000):
+    def validation(self, epsilon=0, validation_episode=5, max_step=8000):
         if self.episode % self.validation_freq != 0 or self.episode <= self.mean_reward_step:
             return
         env = self.env
@@ -331,7 +336,7 @@ class OffPolicy(ABC):
             total_reward += env.episode_returns
 
         self.validation_score = total_reward / float(validation_episode)
-        if self.validation_score > self.max_validation_score:
+        if self.validation_score >= self.max_validation_score:
             self.display_message(
                 f'Best Validation score Updated: {colored(str(self.max_validation_score), "magenta")} -> '
                 f'{colored(str(self.validation_score), "yellow")}'
@@ -354,13 +359,14 @@ class OffPolicy(ABC):
             self.display_learning_state()
             self.reset_episode_parameters()
 
-    def init_training(self, max_steps):
+    def init_training(self, max_steps, target_reward):
         """
         Initialize training start time & policy_network (self.policy_network / self.target_network)
         Args:
             max_steps: Maximum time total_step, if exceeded, the training will stop.
+            target_reward: target reward that agent are expected to reach.
         """
-
+        self.target_reward = target_reward
         self.max_steps = max_steps
         self.env.true_reset()
         self.reset_env()
@@ -404,15 +410,16 @@ class OffPolicy(ABC):
         if render:
             self.env.render()
 
-    def learn(self, max_steps, target_reward=None, ):
+    def learn(self, max_steps, target_reward=None, render=False, ):
         """
         Common training loop shared by subclasses, monitors training status
         and progress, performs all training total_step, updates metrics, and logs progress.
         Args:
              max_steps: Maximum number of total_step, if reached the training will stop.
              target_reward: The target moving average reward, if reached the training will stop, if null will be ignored
+             render: render the game
         """
-        self.init_training(max_steps)
+        self.init_training(max_steps, target_reward)
         while True:
             self.check_episodes()
             if self.check_finish_training():
@@ -421,8 +428,8 @@ class OffPolicy(ABC):
                 self.at_step_start()
                 self.train_step()
                 self.at_step_end()
-            raise NotImplementedError(f'The learn(**kwargs) should '
-                                      f'be implemented by {self.__class__.__name__} subclasses')
+        raise NotImplementedError(f'The learn(**kwargs) should '
+                                  f'be implemented by {self.__class__.__name__} subclasses')
 
     def play(
             self,
@@ -431,7 +438,7 @@ class OffPolicy(ABC):
             video_dir=None,
             frame_delay=0.0,
             max_episode=100,
-            epsilon=0.0001
+            epsilon=0
     ):
         """
         Play and display a test_env.
@@ -466,12 +473,7 @@ class OffPolicy(ABC):
                 env.render()
                 sleep(frame_delay)
 
-            # Greedy choose
-            state = tf.expand_dims(state, axis=0)
-            if tf.random.uniform((), minval=0, maxval=1, dtype=tf.float32) < epsilon:
-                action = tf.random.uniform((), minval=0, maxval=self.n_actions, dtype=tf.int32)
-            else:
-                action = self.policy_network.get_optimal_actions(tf.cast(state, tf.float32))
+            action = self.get_action(tf.constant(state), tf.constant(epsilon, tf.float32))
 
             state, _, _, _ = env.step(action)
             if self.env.was_real_done:

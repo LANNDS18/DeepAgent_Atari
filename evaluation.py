@@ -1,22 +1,30 @@
-from DeepAgent.agents.dqn import DQNAgent
-from DeepAgent.utils.game import GameEnv
-from DeepAgent.utils.buffer import ExperienceReplay
-from DeepAgent.utils.train_evaluation_wrapper import testWrapper
-from DeepAgent.policy.cnnPolicy import CNNPolicy
+from DeepAgent.agents import DQNAgent, DoubleDQNAgent, D3NPERAgent
+from DeepAgent.utils import GameEnv, ExperienceReplay, testWrapper
+from DeepAgent.policy import CNNPolicy, DuelingPolicy
 
 from atari_config import PongConfig, DemonAttackConfig
 
 
-config = DemonAttackConfig
+config = PongConfig
 
 test_dqn_agent = testWrapper(
     config=config,
     agent=DQNAgent,
     env=GameEnv,
-    policy=CNNPolicy,
+    policy=DuelingPolicy,
     buffer=ExperienceReplay,
     test_id=config.ENV_NAME
 )
+
+test_double_agent = testWrapper(
+    config=config,
+    agent=DQNAgent,
+    env=GameEnv,
+    policy=DuelingPolicy,
+    buffer=ExperienceReplay,
+    test_id=config.ENV_NAME
+)
+
 
 test_dqn_agent.play(
     model_load_path=config.MODEL_LOAD_PATH,
