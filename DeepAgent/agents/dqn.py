@@ -150,7 +150,7 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
 
     def at_step_end(self, render=False):
         if self.total_step % self.target_sync_freq == 0:
-            self.display_message("Synchronizing target policy...")
+            self.display_message("Synchronizing target model...")
             self.sync_target_model()
         super().at_step_end(render=render)
 

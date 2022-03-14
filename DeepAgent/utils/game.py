@@ -173,7 +173,7 @@ class StepLimit(gym.Wrapper):
         Limit the length of episode be limited
     """
 
-    def __init__(self, env, limit=20000):
+    def __init__(self, env, limit=10000):
         self.limit = limit
         self.step_count = 0
         super().__init__(env)

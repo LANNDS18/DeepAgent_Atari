@@ -86,8 +86,8 @@ class OffPolicy(ABC):
 
         if self.saving_model:
             self.saving_path = f'./models/{self.agent_id}' + '_' + self.game_id
-            self.check_saving_path()
-            self.history_dict_path = self.saving_path + '/history_check_point.json'
+            self.check_and_create_path(self.saving_path)
+            self.history_dict_file = '/history_check_point.json'
         if self.log_history:
             self.train_log_dir = './log/' + agent_id + '_' + self.game_id + '_' + datetime.now().strftime(
                 "%Y%m%d-%H%M%S")
@@ -95,6 +95,7 @@ class OffPolicy(ABC):
 
         self.validation_freq = validation_freq
         self.validation_score = -float('inf')
+        self.max_validation_score = -float('inf')
 
         self.reset_env()
 
@@ -137,9 +138,10 @@ class OffPolicy(ABC):
         if not self.quiet:
             print(*args, **kwargs)
 
-    def check_saving_path(self):
-        if not os.path.exists(self.saving_path):
-            os.makedirs(self.saving_path)
+    @staticmethod
+    def check_and_create_path(path):
+        if not os.path.exists(path):
+            os.makedirs(path)
 
     def reset_env(self):
         """
@@ -157,14 +159,14 @@ class OffPolicy(ABC):
             self.target_network.save(path + '/target/')
             self.display_message(f'Successfully saving to {path}')
 
-    def load_model(self):
+    def load_model(self, path):
         """
         Load policy_network weight from saving_path
         """
         self.display_message('Loading Weights...')
-        self.policy_network.load(self.saving_path + '/main/')
-        self.target_network.load(self.saving_path + '/target/')
-        self.display_message(f'Loaded from {self.saving_path}')
+        self.policy_network.load(path + '/main/')
+        self.target_network.load(path + '/target/')
+        self.display_message(f'Loaded from {path}')
 
     def sync_target_model(self):
         """Synchronize weights of target network by those of main network."""
@@ -216,7 +218,7 @@ class OffPolicy(ABC):
 
         if finish:
             saving_path = self.saving_path + '/end'
-            os.makedirs(saving_path, exist_ok=True)
+            self.check_and_create_path(saving_path)
             self.update_history(model_path=saving_path)
             return True
         return False
@@ -230,6 +232,7 @@ class OffPolicy(ABC):
             tf.summary.scalar('Loss', self.loss_metric.result(), step=step)
             tf.summary.scalar('Epsilon', self.epsilon, step=step)
             tf.summary.scalar("Total Frames", self.total_step, step=step)
+            tf.summary.scalar('Validation Score', self.validation_score, step=step)
         self.loss_metric.reset_states()
         self.q_metric.reset_states()
 
@@ -243,28 +246,32 @@ class OffPolicy(ABC):
             'episode_reward': [self.real_episode_score],
             'step': [self.total_step],
             'time': [perf_counter() - self.training_start_time],
-            'episode': [self.episode]
+            'episode': [self.episode],
+            'best_validation': [self.max_validation_score],
         }
         write_from_dict(data, path=model_path + '/history_check_point.json')
         self.save_model(model_path)
 
-    def load_history_from_path(self):
+    def load_history_from_path(self, path):
         """
         Load previous training session metadata and update agent metrics to go from there.
         """
         # Load policy_network from checkpoint
-        self.load_model()
+        self.load_model(path)
         # Load training data from json
-        previous_history = pd.read_json(self.history_dict_path).to_dict()
+        previous_history = pd.read_json(path + self.history_dict_file).to_dict()
         self.real_mean_reward = previous_history['mean_reward'][0]
         self.real_best_mean_reward = previous_history['best_mean_reward'][0]
         history_start_steps = previous_history['step'][0]
         history_start_time = previous_history['time'][0]
+        self.episode = previous_history['episode'][0]
+        self.max_validation_score = previous_history['best_validation'][0]
+
         self.total_step = history_start_steps
         self.training_start_time = perf_counter() - history_start_time
         self.last_reset_step = self.total_step = int(history_start_steps)
-        self.episode = previous_history['episode'][0]
-        for i in range(self.real_mean_reward_buffer.maxlen):
+
+        for i in range(self.mean_reward_step):
             self.real_mean_reward_buffer.append(self.real_mean_reward)
 
     def reset_episode_parameters(self):
@@ -295,33 +302,43 @@ class OffPolicy(ABC):
                 perf_counter() - self.last_reset_time
         )
 
-        if self.real_mean_reward > self.real_best_mean_reward and self.episode >= 10:
+        if self.real_mean_reward > self.real_best_mean_reward and self.episode >= self.mean_reward_step / 2:
             self.display_message(
                 f'Best Moving Average Reward Updated: {colored(str(self.real_best_mean_reward), "red")} -> '
                 f'{colored(str(self.real_mean_reward), "green")}'
             )
             self.real_best_mean_reward = self.real_mean_reward
             if self.saving_model:
-                self.update_history(model_path=self.saving_path)
+                path = self.saving_path + '/best'
+                self.check_and_create_path(path)
+                self.update_history(model_path=path)
 
-    def validation(self, epsilon=0.0001):
-        if self.episode % self.validation_freq == 0:
+    def validation(self, epsilon=0, validation_episode=4.0, max_step=8000):
+        if self.episode % self.validation_freq != 0 or self.episode <= self.mean_reward_step:
+            return
+        self.display_message(f'Validation model with {validation_episode} episodes...')
+        total_reward = 0.0
+        for i in range(validation_episode):
             self.reset_env()
             done = False
-            while not done:
+            step = 0
+            while not done and step < max_step:
                 action = self.get_action(tf.constant(self.state), tf.constant(epsilon, tf.float32))
                 self.env.step(action)
                 done = self.env.was_real_done
-            reward = self.env.episode_returns
-            if reward > self.validation_score:
-                self.display_message(
-                    f'Best Validation score Updated: {colored(str(self.validation_score), "magenta")} -> '
-                    f'{colored(str(reward), "yellow")}'
-                )
-                self.validation_score = reward
-                saving_path = self.saving_path + '/valid'
-                os.makedirs(saving_path, exist_ok=True)
-                self.update_history(model_path=saving_path)
+                step += 1
+            total_reward += self.env.episode_returns
+
+        self.validation_score = total_reward / validation_episode
+        if self.validation_score > self.max_validation_score:
+            self.display_message(
+                f'Best Validation score Updated: {colored(str(self.max_validation_score), "magenta")} -> '
+                f'{colored(str(self.validation_score), "yellow")}'
+            )
+            self.max_validation_score = self.validation_score
+            saving_path = self.saving_path + '/valid'
+            self.check_and_create_path(saving_path)
+            self.update_history(model_path=saving_path)
 
     def check_episodes(self):
         """
@@ -352,13 +369,13 @@ class OffPolicy(ABC):
 
         load = False
 
-        if self.saving_model and Path(self.history_dict_path).is_file():
-            self.display_message(f'Load history from {self.history_dict_path}')
+        path = self.saving_path + '/best'
+        if self.saving_model and Path(path + self.history_dict_file).is_file():
+            self.display_message(f'Load history from {path + self.history_dict_file}')
             load = True
-            self.load_history_from_path()
+            self.load_history_from_path(path)
         else:
             self.total_step = 0
-            self.episode = 1
         self.fill_buffer(load=load)
 
     def get_action(self, state, epsilon):
@@ -427,7 +444,8 @@ class OffPolicy(ABC):
             total_reward: List of reward for each episode
         """
         self.saving_path = model_load_path
-        self.load_model()
+        path = self.saving_path + '/valid'
+        self.load_model(path)
         episode = 0
         steps = 0
         episode_reward = 0
