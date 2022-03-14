@@ -34,7 +34,6 @@ class EpisodicLifeEnv(gym.Wrapper):
         self.lives = 0
         self.was_real_done = True
         self.episode_returns = 0.0
-        self.episode_count = 0
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
@@ -52,7 +51,6 @@ class EpisodicLifeEnv(gym.Wrapper):
         and the learner need not know about any of this behind-the-scenes.
         """
         if self.was_real_done:
-            self.episode_count += 1
             self.episode_returns = 0.0
             obs = self.env.reset(**kwargs)
         else:
@@ -208,7 +206,12 @@ class ClipReward(gym.Wrapper):
         observation, reward, done, info = self.env.step(action)
         if done:
             reward = -1
-        return observation, np.sign(reward), done, info
+        reward = np.sign(reward)
+        if reward > 0:
+            reward = 0.5
+        else:
+            reward -= 1e-7
+        return observation, reward, done, info
 
 
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):

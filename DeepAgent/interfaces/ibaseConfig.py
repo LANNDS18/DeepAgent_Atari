@@ -22,7 +22,12 @@ class BaseConfig(ABC):
     ENV_NAME = None
     CROP = None
 
-    '''Learning rate decay policy'''
+    '''
+    Learning rate decay policy
+    format: [[start_lr, update_lr, total_update], [..., ..., ...]]
+    total_update = total_step / update_freq
+    5e5 * 4 = 2e6
+    '''
     LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
 
     """

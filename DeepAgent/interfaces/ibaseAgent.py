@@ -33,7 +33,7 @@ class OffPolicy(ABC):
             target_sync_freq=10000,
             saving_model=False,
             log_history=False,
-            validation_freq=100,
+            validation_freq=10,
             quiet=False,
     ):
         self.env = env
@@ -44,7 +44,6 @@ class OffPolicy(ABC):
         self.input_shape = self.env.observation_space.shape
 
         self.buffer = buffer
-        self.warm_up_episode = 0
         self.buffer_fill_size = buffer_fill_size
         self.real_mean_reward_buffer = deque(maxlen=mean_reward_step)
         self.mean_reward_step = mean_reward_step
@@ -95,7 +94,7 @@ class OffPolicy(ABC):
             self.summary_writer = tf.summary.create_file_writer(self.train_log_dir)
 
         self.validation_freq = validation_freq
-        self.validation_score = 0
+        self.validation_score = -float('inf')
 
         self.reset_env()
 
@@ -124,7 +123,6 @@ class OffPolicy(ABC):
                 end='',
             )
 
-        self.warm_up_episode -= episode
         self.state = state
         self.display_message('')
         self.reset_env()
@@ -265,7 +263,7 @@ class OffPolicy(ABC):
         self.total_step = history_start_steps
         self.training_start_time = perf_counter() - history_start_time
         self.last_reset_step = self.total_step = int(history_start_steps)
-        self.warm_up_episode = previous_history['episode'][0]
+        self.episode = previous_history['episode'][0]
         for i in range(self.real_mean_reward_buffer.maxlen):
             self.real_mean_reward_buffer.append(self.real_mean_reward)
 
@@ -285,7 +283,7 @@ class OffPolicy(ABC):
         for calculation of fps, and update mean and best reward. The policy_network is
         saved if there is a checkpoint path specified.
         """
-        self.episode = self.env.episode_count + self.warm_up_episode
+        self.episode += 1
         self.real_episode_score = self.env.episode_returns
         self.real_mean_reward_buffer.append(self.real_episode_score)
 
@@ -306,12 +304,12 @@ class OffPolicy(ABC):
             if self.saving_model:
                 self.update_history(model_path=self.saving_path)
 
-    def validation(self):
+    def validation(self, epsilon=0.0001):
         if self.episode % self.validation_freq == 0:
             self.reset_env()
             done = False
             while not done:
-                action = self.get_action(tf.constant(self.state), tf.constant(self.epsilon, tf.float32))
+                action = self.get_action(tf.constant(self.state), tf.constant(epsilon, tf.float32))
                 self.env.step(action)
                 done = self.env.was_real_done
             reward = self.env.episode_returns
@@ -324,7 +322,6 @@ class OffPolicy(ABC):
                 saving_path = self.saving_path + '/valid'
                 os.makedirs(saving_path, exist_ok=True)
                 self.update_history(model_path=saving_path)
-            self.warm_up_episode += 1
 
     def check_episodes(self):
         """
