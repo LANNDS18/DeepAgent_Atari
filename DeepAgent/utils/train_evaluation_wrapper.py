@@ -1,5 +1,3 @@
-from DeepAgent.interfaces import ibaseAgent, ibaseBuffer, ibasePolicy
-from gym import Wrapper
 import tensorflow as tf
 
 
@@ -73,12 +71,6 @@ def trainWrapper(config, env, buffer, policy, agent, train_id):
         saving_model=config.SAVING_MODEL,
         log_history=config.LOG_HISTORY,
     )
-
-    assert isinstance(_agent, ibaseAgent.OffPolicy)
-    assert isinstance(_main, ibasePolicy.BaseNNPolicy)
-    assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
-    assert isinstance(_env, Wrapper)
-
     return _agent
 
 
@@ -126,9 +118,4 @@ def testWrapper(config, agent, env, policy, buffer, test_id):
         target_network=_target,
         buffer=_buffer,
     )
-
-    assert isinstance(_agent, ibaseAgent.OffPolicy)
-    assert isinstance(_policy, ibasePolicy.BaseNNPolicy)
-    assert isinstance(_buffer, ibaseBuffer.BaseBuffer)
-    assert isinstance(_env, Wrapper)
     return _agent

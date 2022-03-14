@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import json
-import matplotlib.pyplot as plt
 
 
 class LazyFrames(object):
@@ -40,16 +38,6 @@ class LazyFrames(object):
         return self._force()[..., i]
 
 
-def write_from_dict(_dict, path):
-    """
-    Args:
-        _dict: Dictionary of label: [scalar]
-        path: Path to .json file.
-    """
-    with open(path, 'w') as fp:
-        json.dump(_dict, fp)
-
-
 def process_frame(frame, shape=(84, 84), crop=None):
     """
     Preprocesses a 210x160x3 frame to 84x84x1 grayscale
@@ -68,12 +56,3 @@ def process_frame(frame, shape=(84, 84), crop=None):
     frame = frame.reshape(*shape, -1)
     return frame
 
-
-# plot reward
-def plot_rewards(rewards, title):
-    plt.figure(figsize=(10, 5))
-    plt.plot(rewards)
-    plt.xlabel('episode')
-    plt.ylabel('reward')
-    plt.title(title)
-    plt.show()
