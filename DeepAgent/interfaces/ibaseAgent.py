@@ -318,7 +318,7 @@ class OffPolicy(ABC):
                 self.check_and_create_path(path)
                 self.update_history(model_path=path)
 
-    def validation(self, epsilon=0, validation_episode=5, max_step=8000):
+    def validation(self, epsilon=0, validation_episode=10, max_step=8000):
         if self.episode % self.validation_freq != 0 or self.episode <= self.mean_reward_step:
             return
         env = self.env

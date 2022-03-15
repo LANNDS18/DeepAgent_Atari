@@ -76,5 +76,5 @@ class DemonAttackConfig(BaseConfig):
     SAVING_MODEL = True
     LOG_HISTORY = True
 
-    MODEL_LOAD_PATH = 'models/DDDQN_v1_DemonAttackNoFrameskip-v4'
+    MODEL_LOAD_PATH = 'models/DQN_DemonAttackNoFrameskip-v4/best'
     VIDEO_DIR = './video/DemonAttackDQN'

@@ -5,13 +5,13 @@ from DeepAgent.policy import CNNPolicy, DuelingPolicy
 from atari_config import PongConfig, DemonAttackConfig
 
 
-config = PongConfig
+config = DemonAttackConfig
 
 test_dqn_agent = testWrapper(
     config=config,
     agent=DQNAgent,
     env=GameEnv,
-    policy=DuelingPolicy,
+    policy=CNNPolicy,
     buffer=ExperienceReplay,
     test_id=config.ENV_NAME
 )

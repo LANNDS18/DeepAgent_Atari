@@ -1,12 +1,10 @@
-from DeepAgent.policy.duelingPolicy import DuelingPolicy
-from DeepAgent.utils.buffer import PrioritizedExperienceReplay
-from DeepAgent.utils.game import GameEnv
-from DeepAgent.agents.d3nPER import D3NPERAgent
-from DeepAgent.utils.train_evaluation_wrapper import trainWrapper
-from atari_config import PongConfig
+from DeepAgent.policy import DuelingPolicy
+from DeepAgent.utils import PrioritizedExperienceReplay, GameEnv, trainWrapper
+from DeepAgent.agents import D3NPERAgent
+from atari_config import PongConfig, DemonAttackConfig
 
 if __name__ == '__main__':
-    _config = PongConfig
+    _config = DemonAttackConfig
     agent = trainWrapper(
         config=_config,
         env=GameEnv,
