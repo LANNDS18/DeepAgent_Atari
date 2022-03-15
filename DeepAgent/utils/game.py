@@ -198,7 +198,8 @@ def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, trai
     env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     env = NoopResetEnv(env, noop_max=10)
     env = MaxAndSkipEnv(env, skip=4)
-    env = EpisodicLifeEnv(env)
+    if train:
+        env = EpisodicLifeEnv(env)
     env = StepLimit(env)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
@@ -213,7 +214,7 @@ class GameEnv(gym.Wrapper):
                  output_shape=(84, 84),
                  frame_stack=4,
                  crop=lambda x: x,
-                 reward_processor=lambda x: x,
+                 reward_processor=lambda x, y: x,
                  train=True
                  ):
         env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=output_shape, train=train, crop=crop)
@@ -241,8 +242,6 @@ class GameEnv(gym.Wrapper):
             info: other information
         """
         next_state, reward, done, info = self.env.step(action)
-        if done:
-            reward = -1
-        reward = self.reward_processor(reward)
+        reward = self.reward_processor(reward, done)
         next_state = np.array(next_state)
         return next_state, reward, done, info

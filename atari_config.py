@@ -12,7 +12,12 @@ def pong_crop(x): return x[30:-10, :]
 def demon_attack_crop(x): return x[20:-20, :]
 
 
-def demon_attack_reward(reward):
+def break_out_crop(x): return x[30: -5, 5: -5]
+
+
+def demon_attack_reward(reward, done):
+    if done:
+        reward = -1
     reward = np.sign(reward)
     if reward > 0:
         reward = 0.5
@@ -21,7 +26,10 @@ def demon_attack_reward(reward):
     return reward
 
 
-def pong_reward(reward): return np.sign(reward)
+def pong_reward(reward, done):
+    if done:
+        reward = -1
+    return np.sign(reward)
 
 
 class PongConfig(BaseConfig):
@@ -49,7 +57,7 @@ class PongConfig(BaseConfig):
     LOG_HISTORY = True
 
     MODEL_LOAD_PATH = './models/DDDQN_PongNoFrameskip-v4/best'
-    VIDEO_DIR = './video/PongDQN'
+    VIDEO_DIR = './video/Pong'
 
 
 class DemonAttackConfig(BaseConfig):
@@ -77,4 +85,27 @@ class DemonAttackConfig(BaseConfig):
     LOG_HISTORY = True
 
     MODEL_LOAD_PATH = 'models/DQN_DemonAttackNoFrameskip-v4/best'
-    VIDEO_DIR = './video/DemonAttackDQN'
+    VIDEO_DIR = './video/DemonAttack'
+
+
+class BreakoutConfig(BaseConfig):
+    RENDER = True
+    TARGET_REWARD = 8000
+
+    ENV_NAME = 'BreakoutNoFrameskip-v0'
+    CROP = break_out_crop
+    REWARD_PROCESSOR = pong_reward
+    LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
+
+    GAMMA = 0.99
+    N_STEP = 10
+    ONE_STEP_WEIGHT = 0.5
+    N_STEP_WEIGHT = 0.5
+    EPS_SCHEDULE = [[1, 0.2, 1e5],
+                    [0.2, 0.1, 1e6],
+                    [0.1, 0.01, 2e6]]
+
+    TARGET_SYNC_FREQ = 10000
+    SAVING_MODEL = True
+    LOG_HISTORY = True
+    VIDEO_DIR = './video/Breakout'

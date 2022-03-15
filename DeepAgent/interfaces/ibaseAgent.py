@@ -462,25 +462,27 @@ class OffPolicy(ABC):
         env = self.env
         state = env.reset()
 
+        video_dir = video_dir + self.agent_id
         if video_dir:
             env = gym.wrappers.RecordVideo(env, video_folder=video_dir, )
             env.reset()
             if not os.path.exists(video_dir):
                 os.makedirs(video_dir)
-
+        episode_reward = 0
         while True:
             if render:
                 env.render()
                 sleep(frame_delay)
 
             action = self.get_action(tf.constant(state), tf.constant(epsilon, tf.float32))
+            state, reward, done, _ = env.step(action)
+            episode_reward += reward
 
-            state, _, _, _ = env.step(action)
-            if self.env.was_real_done:
-                episode_reward = self.env.episode_returns
+            if done:
                 total_reward.append(episode_reward)
                 self.display_message(f'Episode: {episode}, Episode Reward: {episode_reward}')
                 episode += 1
+                episode_reward = 0
                 state = env.reset()
 
                 if max_episode and episode >= max_episode:

@@ -21,7 +21,7 @@ class BaseConfig(ABC):
     IMAGE_SHAPE = (84, 84)
     ENV_NAME = None
     CROP = None
-    REWARD_PROCESSOR = None
+    REWARD_PROCESSOR = lambda x, y: x
 
     '''
     Learning rate decay policy
@@ -73,5 +73,4 @@ class BaseConfig(ABC):
     TEST_BUFFER_SIZE = 10
     TEST_BATCH_SIZE = 1
     TEST_MAX_EPISODE = 10
-    MODEL_LOAD_PATH = None
     VIDEO_DIR = None

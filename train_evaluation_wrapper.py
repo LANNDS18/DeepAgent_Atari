@@ -74,7 +74,7 @@ def trainWrapper(config, env, buffer, policy, agent, train_id):
     return _agent
 
 
-def testWrapper(config, agent, env, policy, buffer, test_id):
+def testWrapper(config, agent, env, policy, buffer):
     _env = env(
         env_name=config.ENV_NAME,
         output_shape=config.IMAGE_SHAPE,
@@ -112,7 +112,6 @@ def testWrapper(config, agent, env, policy, buffer, test_id):
     )
 
     _agent = agent(
-        agent_id=test_id,
         env=_env,
         policy_network=_policy,
         target_network=_target,

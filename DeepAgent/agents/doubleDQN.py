@@ -10,7 +10,7 @@ class DoubleDQNAgent(DQNAgent):
             policy_network,
             target_network,
             buffer,
-            agent_id='Double DQN',
+            agent_id='DDDQN',
             **kwargs,
     ):
         """
