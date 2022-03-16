@@ -76,9 +76,9 @@ class DemonAttackConfig(BaseConfig):
     N_STEP = 10
     ONE_STEP_WEIGHT = 0.5
     N_STEP_WEIGHT = 0.5
-    EPS_SCHEDULE = [[1, 0.1, 1e6],
-                    [0.1, 0.01, 2e6],
-                    [0.01, 0.001, 5e6]]
+    EPS_SCHEDULE = [[1, 0.5, 3e5],
+                    [0.5, 0.1, 5e5],
+                    [0.01, 0.001, 1e6]]
 
     TARGET_SYNC_FREQ = 10000
     SAVING_MODEL = True
