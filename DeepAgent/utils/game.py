@@ -6,12 +6,16 @@ from collections import deque
 from DeepAgent.utils.common import process_frame, LazyFrames
 
 
-class PendingFire(gym.Wrapper):
-    def __init__(self, env_name):
-        """Take action on reset for environments that are fixed until firing."""
-        gym.Wrapper.__init__(self, env_name)
+class FireResetEnv(gym.Wrapper):
+    """
+    Take action on reset for environments that are fixed until firing.
+    :param env: the environment to wrap
+    """
 
-    def reset(self, **kwargs):
+    def __init__(self, env: gym.Env):
+        gym.Wrapper.__init__(self, env)
+
+    def reset(self, **kwargs) -> np.ndarray:
         self.env.reset(**kwargs)
         obs, _, done, _ = self.env.step(1)
         if done:
@@ -193,13 +197,13 @@ class StepLimit(gym.Wrapper):
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
     env = gym.make(env_name)
     assert 'NoFrameskip' in env.spec.id
-    if 'FIRE' in env.unwrapped.get_action_meanings():
-        env = PendingFire(env)
-    env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     env = NoopResetEnv(env, noop_max=10)
     env = MaxAndSkipEnv(env, skip=4)
     if train:
         env = EpisodicLifeEnv(env)
+    if "FIRE" in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)
+    env = ResizeEnv(env, output_shape=output_shape, crop=crop)
     env = StepLimit(env)
     if frame_stack:
         env = StackFrameEnv(env, frame_stack=frame_stack)
@@ -214,7 +218,7 @@ class GameEnv(gym.Wrapper):
                  output_shape=(84, 84),
                  frame_stack=4,
                  crop=lambda x: x,
-                 reward_processor=lambda x, y: x,
+                 reward_processor=lambda x, y, z: x,
                  train=True
                  ):
         env = mergeWrapper(env_name, frame_stack=frame_stack, output_shape=output_shape, train=train, crop=crop)
@@ -225,10 +229,6 @@ class GameEnv(gym.Wrapper):
 
     def reset(self):
         frame = np.array(self.env.reset())
-        return frame
-
-    def true_reset(self):
-        frame = self.env.unwrapped.reset()
         return frame
 
     def step(self, action):
@@ -242,6 +242,6 @@ class GameEnv(gym.Wrapper):
             info: other information
         """
         next_state, reward, done, info = self.env.step(action)
-        reward = self.reward_processor(reward, done)
+        reward = self.reward_processor(reward, done, action)
         next_state = np.array(next_state)
         return next_state, reward, done, info

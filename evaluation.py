@@ -1,8 +1,9 @@
-from DeepAgent.agents import DQNAgent, DoubleDQNAgent, D3NPERAgent
-from DeepAgent.utils import GameEnv, ExperienceReplay, testWrapper
+from DeepAgent.agents import DQNAgent, DoubleDQNAgent
+from DeepAgent.utils import GameEnv, ExperienceReplay
 from DeepAgent.policy import CNNPolicy, DuelingPolicy
 
-from atari_config import PongConfig, DemonAttackConfig
+from DeepAgent.utils.dqn_train_evaluation_wrapper import testWrapper
+from atari_config import DemonAttackConfig
 
 
 config = DemonAttackConfig
@@ -13,24 +14,22 @@ test_dqn_agent = testWrapper(
     env=GameEnv,
     policy=CNNPolicy,
     buffer=ExperienceReplay,
-    test_id=config.ENV_NAME
 )
 
 test_double_agent = testWrapper(
     config=config,
-    agent=DQNAgent,
+    agent=DoubleDQNAgent,
     env=GameEnv,
     policy=DuelingPolicy,
     buffer=ExperienceReplay,
-    test_id=config.ENV_NAME
 )
 
 
-test_dqn_agent.play(
-    model_load_path=config.MODEL_LOAD_PATH,
+test_double_agent.play(
+    model_load_path='./models/DDDQN_DemonAttackNoFrameskip-v4/valid',
     render=True,
     video_dir=config.VIDEO_DIR,
-    max_episode=DemonAttackConfig.TEST_MAX_EPISODE
+    max_episode=config.TEST_MAX_EPISODE
 )
 
 

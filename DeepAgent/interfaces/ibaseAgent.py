@@ -285,7 +285,6 @@ class OffPolicy(ABC):
         """
         self.reset_env()
         self.done = False
-
         self.last_reset_time = perf_counter()
         self.last_reset_step = self.total_step
 
@@ -321,19 +320,20 @@ class OffPolicy(ABC):
     def validation(self, epsilon=0, validation_episode=10, max_step=8000):
         if self.episode % self.validation_freq != 0 or self.episode <= self.mean_reward_step:
             return
-        env = self.env
         self.display_message(f'Validation model with {validation_episode} episodes...')
         total_reward = 0.0
         for i in range(validation_episode):
-            state = env.reset()
-            done = False
+            self.done = False
+            self.reset_env()
             step = 0
-            while not done and step < max_step:
-                action = self.get_action(tf.constant(state), tf.constant(epsilon, tf.float32))
-                state, _, _, _ = env.step(action)
-                done = env.was_real_done
+            while not self.done and step < max_step:
+                action = self.get_action(tf.constant(self.state), tf.constant(epsilon, tf.float32))
+                next_state, _, _, _ = self.env.step(action)
+                self.state = next_state
+                self.done = self.env.was_real_done
                 step += 1
-            total_reward += env.episode_returns
+                self.env.render()
+            total_reward += self.env.episode_returns
 
         self.validation_score = total_reward / float(validation_episode)
         if self.validation_score >= self.max_validation_score:
@@ -368,7 +368,6 @@ class OffPolicy(ABC):
         """
         self.target_reward = target_reward
         self.max_steps = max_steps
-        self.env.true_reset()
         self.reset_env()
         self.real_episode_score = 0.0
         self.done = False

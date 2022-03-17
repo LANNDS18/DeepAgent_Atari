@@ -38,7 +38,7 @@ class D3NPERAgent(DoubleDQNAgent):
         self.buffer.append(self.state, action, reward, done, next_state)
 
         self.state = next_state
-        self.done = done
+        self.done = self.env.was_real_done
 
         if self.total_step % self.model_update_freq == 0:
             indices = self.buffer.get_sample_indices()

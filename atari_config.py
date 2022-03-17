@@ -12,10 +12,10 @@ def pong_crop(x): return x[30:-10, :]
 def demon_attack_crop(x): return x[20:-20, :]
 
 
-def break_out_crop(x): return x[30: -5, 5: -5]
+def enduro_crop(x): return x[35: -50, 5: -5]
 
 
-def demon_attack_reward(reward, done):
+def demon_attack_reward(reward, done, action):
     if done:
         reward = -1
     reward = np.sign(reward)
@@ -26,7 +26,13 @@ def demon_attack_reward(reward, done):
     return reward
 
 
-def pong_reward(reward, done):
+def pong_reward(reward, done, action):
+    if done:
+        reward = -1
+    return np.sign(reward)
+
+
+def enduro_reward(reward, done, action):
     if done:
         reward = -1
     return np.sign(reward)
@@ -88,12 +94,12 @@ class DemonAttackConfig(BaseConfig):
     VIDEO_DIR = './video/DemonAttack'
 
 
-class BreakoutConfig(BaseConfig):
+class EnduroConfig(BaseConfig):
     RENDER = True
     TARGET_REWARD = 8000
 
-    ENV_NAME = 'BreakoutNoFrameskip-v0'
-    CROP = break_out_crop
+    ENV_NAME = 'EnduroNoFrameskip-v4'
+    CROP = enduro_crop
     REWARD_PROCESSOR = pong_reward
     LEARNING_RATE = [[5e-4, 2.5e-4, 5e5], [2.5e-4, 1e-4, 1e6]]
 
@@ -101,9 +107,9 @@ class BreakoutConfig(BaseConfig):
     N_STEP = 10
     ONE_STEP_WEIGHT = 0.5
     N_STEP_WEIGHT = 0.5
-    EPS_SCHEDULE = [[1, 0.2, 1e5],
-                    [0.2, 0.1, 1e6],
-                    [0.1, 0.01, 2e6]]
+    EPS_SCHEDULE = [[1, 0.1, 1e6],
+                    [0.1, 0.01, 5e6],
+                    [00.1, 0.01, 8e6]]
 
     TARGET_SYNC_FREQ = 10000
     SAVING_MODEL = True

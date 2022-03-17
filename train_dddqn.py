@@ -2,10 +2,10 @@ from DeepAgent.policy import DuelingPolicy
 from DeepAgent.agents import DoubleDQNAgent
 from DeepAgent.utils import ExperienceReplay, GameEnv, trainWrapper
 
-from atari_config import DemonAttackConfig, PongConfig
+from atari_config import EnduroConfig
 
 if __name__ == '__main__':
-    _config = PongConfig
+    _config = EnduroConfig
     agent = trainWrapper(
         config=_config,
         env=GameEnv,
