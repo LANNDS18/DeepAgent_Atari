@@ -22,28 +22,34 @@ class Client:
         self.game_config_id = game_configs.keys()
 
     def args_parse(self):
-        parser = argparse.ArgumentParser(description="DeepAgent")
+        parser = argparse.ArgumentParser(description="DeepAgent Client")
+
         parser.add_argument('--config',
                             default="PongConfig",
                             choices=self.game_config_id,
-                            help='Should be a config within atari_config.py')
+                            help='a config inherit base config from atari_config.py')
 
         parser.add_argument("-a", "--agent",
                             type=str,
                             default='DQN',
                             choices=self.agent_config_id,
-                            help="agent be used")
+                            help="the deep reinforcement learning agent would be used")
 
         parser.add_argument('--train_id',
                             type=str,
                             default=f'Deep_rl_{datetime.now().strftime("%Y%m%d-%H%M%S")}',
-                            help="Play with specific id to store in directory")
+                            help="the id to specify a deep agent")
 
-        parser.add_argument("-r", "--render", action='store_true')
+        parser.add_argument("-r", "--render",
+                            action='store_true',
+                            help="render the game to the screen")
+
         parser.add_argument("--train", action='store_true')
         parser.add_argument("--test", action='store_true')
         parser.add_argument("-v", "--visualization", action='store_true')
-        parser.add_argument("--load_dir")
+
+        parser.add_argument("--load_dir",
+                            help="a checkpoint using to load the pre-trained model if testing or visualization")
 
         args = parser.parse_args()
         return args
