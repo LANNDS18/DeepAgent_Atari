@@ -26,7 +26,7 @@ test_double_agent = TestWrapper(
 
 
 test_double_agent.play(
-    model_load_path='./models/DDDQN_PongNoFrameskip-v4/best',
+    model_load_path='./models/DDDQN_PongNoFrameskip-v4/best/',
     render=True,
     video_dir=config.VIDEO_DIR,
     max_episode=config.TEST_MAX_EPISODE
