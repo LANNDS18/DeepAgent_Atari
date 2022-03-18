@@ -3,7 +3,6 @@ import io
 import cv2
 import numpy as np
 import pyglet
-import tensorflow
 import tensorflow as tf
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
@@ -11,8 +10,6 @@ from matplotlib.figure import Figure
 from DeepAgent.policy import DuelingPolicy
 from DeepAgent.utils import testEnvWrapper, GameEnv, testPolicyWrapper
 from atari_config import PongConfig
-
-K = tensorflow.keras.backend
 
 
 def display_nparray(arr, max_width=500):
@@ -41,7 +38,7 @@ def generate_heatmap(frame, model):
         model_out, last_conv_layer = iterate(frame[np.newaxis, :, :, :])
         class_out = model_out[:, np.argmax(model_out[0])]
         grads = tape.gradient(class_out, last_conv_layer)
-        pooled_grads = K.mean(grads, axis=(0, 1, 2))
+        pooled_grads = tf.keras.backend.mean(grads, axis=(0, 1, 2))
 
     heatmap = tf.reduce_mean(tf.multiply(pooled_grads, last_conv_layer), axis=-1)
     heatmap = np.maximum(heatmap, 0)
@@ -57,6 +54,9 @@ class DeepAgent_Vis(pyglet.window.Window):
     def __init__(self, policy, width=1400, height=720, caption="RL Visualizer", resizable=False):
         super().__init__(width, height, caption, resizable)
         self.policy = policy
+        self.font = 'Futura'
+        self.gl_color = (3./255., 41./255., 81/255., 1)
+        self.font_color = (205, 179, 128, 244)
         self.set_minimum_size(400, 300)
         self.frame_rate = 1 / 60
         self.max_q_val = 0.1
@@ -80,24 +80,25 @@ class DeepAgent_Vis(pyglet.window.Window):
 
         # Text
         self.human_title = pyglet.text.Label('Game Rendered Screen',
-                                             font_size=15, color=(0, 0, 0, 255),
+                                             font_size=15, color=self.font_color, font_name=self.font,
                                              x=10, y=self.height - 20, anchor_y='center')
         self.q_val_title = pyglet.text.Label('Action Q',
-                                             font_size=15, color=(0, 0, 0, 255),
+                                             font_size=15, color=self.font_color, font_name=self.font,
                                              x=500, y=self.height - 20, anchor_y='center')
         self.agent_title = pyglet.text.Label('Agent Vision',
-                                             font_size=15, color=(0, 0, 0, 255),
+                                             font_size=15, color=self.font_color, font_name=self.font,
                                              x=10, y=235, anchor_y='center')
 
         self.heatmap_title = pyglet.text.Label('Agent Attention',
-                                               font_size=15, color=(0, 0, 0, 255),
+                                               font_size=15, color=self.font_color, font_name=self.font,
                                                x=1000, y=self.height - 140, anchor_y='center')
 
         self.action_titles = []
 
         for i, action in enumerate(env.env.unwrapped.get_action_meanings()):
             self.action_titles.append(
-                pyglet.text.Label(action, font_size=20, color=(0, 0, 0, 255), x=0, y=0, anchor_x='center'))
+                pyglet.text.Label(action, font_size=10, color=self.font_color, font_name=self.font,
+                                  x=0, y=0, anchor_x='center'))
 
     def value_his(self):
         dpi_res = min(self.width, self.height) / 10
@@ -105,7 +106,7 @@ class DeepAgent_Vis(pyglet.window.Window):
         ax = fig.add_subplot(111)
 
         # Set up plot
-        ax.set_title('Episode Reward', fontsize=20)
+        ax.set_title('Episode Reward', fontsize=15)
         ax.set_xticklabels([])
         ax.set_ylabel('V(s)')
         ax.plot(self.episode_reward_sum[:])  # plot values
@@ -123,7 +124,7 @@ class DeepAgent_Vis(pyglet.window.Window):
         self.q_val_title.draw()
         length = 80
         starting_x = 400
-        for i, (q_val, label) in enumerate(zip(self.q_vals[::-1], self.action_titles[::-1])):
+        for i, q_val in enumerate(self.q_vals):
             if q_val > self.max_q_val:
                 self.max_q_val = q_val
             elif q_val < self.min_q_val:
@@ -144,7 +145,7 @@ class DeepAgent_Vis(pyglet.window.Window):
             # Draw action label
             pyglet.gl.glTranslatef(x_value + length / 2, self.height - 100 - length, 0.0)
             pyglet.gl.glRotatef(-90.0, 0.0, 0.0, 1.0)
-            label.draw()
+            self.action_titles[i].draw()
             pyglet.gl.glRotatef(90.0, 0.0, 0.0, 1.0)
             pyglet.gl.glTranslatef(-(x_value + length / 2), -(self.height - 100 - length), 0.0)
 
@@ -187,7 +188,7 @@ class DeepAgent_Vis(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        pyglet.gl.glClearColor(1., 1., 1., 1.)
+        pyglet.gl.glClearColor(32/255., 20/255., 40/255., 1)
         pyglet.gl.glTexParameteri(pyglet.gl.GL_TEXTURE_2D, pyglet.gl.GL_TEXTURE_MAG_FILTER, pyglet.gl.GL_NEAREST)
         pyglet.gl.glTexParameteri(pyglet.gl.GL_TEXTURE_2D, pyglet.gl.GL_TEXTURE_MIN_FILTER, pyglet.gl.GL_NEAREST)
 
