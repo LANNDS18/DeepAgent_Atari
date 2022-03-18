@@ -1,12 +1,12 @@
 from DeepAgent.policy import CNNPolicy
 from DeepAgent.agents import DQNAgent
-from DeepAgent.utils import ExperienceReplay, GameEnv, trainWrapper
+from DeepAgent.utils import ExperienceReplay, GameEnv, TrainWrapper
 
-from atari_config import EnduroConfig
+from atari_config import EnduroConfig, DemonAttackConfig
 
 if __name__ == '__main__':
-    _config = EnduroConfig
-    agent = trainWrapper(
+    _config = DemonAttackConfig
+    agent = TrainWrapper(
         config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,

@@ -8,7 +8,7 @@ def use_gpu(use=False):
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 
-def trainWrapper(config, env, buffer, policy, agent, train_id):
+def TrainWrapper(config, env, buffer, policy, agent, train_id):
     """
     The wrapper can be used to read and pass configuration to specific environment, buffer, policy, and agent.
 
@@ -74,7 +74,7 @@ def trainWrapper(config, env, buffer, policy, agent, train_id):
     return _agent
 
 
-def testEnvWrapper(config, env):
+def EnvTestWrapper(config, env):
     _env = env(
         env_name=config.ENV_NAME,
         output_shape=config.IMAGE_SHAPE,
@@ -85,7 +85,7 @@ def testEnvWrapper(config, env):
     return _env
 
 
-def testPolicyWrapper(config, policy, _env):
+def PolicyTestWrapper(config, policy, _env):
     _policy = policy(
         conv_layers=config.CONV_LAYERS,
         dense_layers=None,
@@ -100,19 +100,19 @@ def testPolicyWrapper(config, policy, _env):
     return _policy
 
 
-def testNonEnvWrapper(config, agent, buffer, policy, _env):
+def VisualizationWrapper(config, env, policy):
+    use_gpu(config.USE_GPU)
 
-    _policy = policy(
-        conv_layers=config.CONV_LAYERS,
-        dense_layers=None,
-        input_shape=config.IMAGE_SHAPE,
-        frame_stack=config.FRAME_STACK,
-        n_actions=_env.action_space.n,
-        optimizer=config.OPTIMIZER,
-        lr_schedule=config.LEARNING_RATE,
-        one_step_weight=1.0,
-        l2_weight=0.0
-    )
+    _env = EnvTestWrapper(config, env)
+    _policy = PolicyTestWrapper(config, policy, _env)
+    return _env, _policy
+
+
+def TestWrapper(config, agent, env, policy, buffer):
+    use_gpu(config.USE_GPU)
+
+    _env = EnvTestWrapper(config, env)
+    _policy = PolicyTestWrapper(config, policy, _env)
 
     _buffer = buffer(
         size=config.TEST_BUFFER_SIZE,
@@ -125,12 +125,4 @@ def testNonEnvWrapper(config, agent, buffer, policy, _env):
         target_network=_policy,
         buffer=_buffer,
     )
-    return _agent
-
-
-def testWrapper(config, agent, env, policy, buffer):
-    _env = testEnvWrapper(config, env)
-
-    _agent = testNonEnvWrapper(config, agent, buffer, policy, _env)
-
     return _agent

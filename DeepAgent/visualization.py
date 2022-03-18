@@ -7,10 +7,6 @@ import tensorflow as tf
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
-from DeepAgent.policy import DuelingPolicy
-from DeepAgent.utils import testEnvWrapper, GameEnv, testPolicyWrapper
-from atari_config import PongConfig
-
 
 def display_nparray(arr, max_width=500):
     assert len(arr.shape) == 3
@@ -51,11 +47,12 @@ def generate_heatmap(frame, model):
 
 
 class DeepAgent_Vis(pyglet.window.Window):
-    def __init__(self, policy, width=1400, height=720, caption="RL Visualizer", resizable=False):
+    def __init__(self, policy, env, width=1400, height=720, caption="RL Visualizer", resizable=False):
         super().__init__(width, height, caption, resizable)
         self.policy = policy
+        self.env = env
         self.font = 'Futura'
-        self.gl_color = (3./255., 41./255., 81/255., 1)
+        self.gl_color = (3. / 255., 41. / 255., 81 / 255., 1)
         self.font_color = (205, 179, 128, 244)
         self.set_minimum_size(400, 300)
         self.frame_rate = 1 / 60
@@ -188,7 +185,7 @@ class DeepAgent_Vis(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        pyglet.gl.glClearColor(32/255., 20/255., 40/255., 1)
+        pyglet.gl.glClearColor(32 / 255., 20 / 255., 40 / 255., 1)
         pyglet.gl.glTexParameteri(pyglet.gl.GL_TEXTURE_2D, pyglet.gl.GL_TEXTURE_MAG_FILTER, pyglet.gl.GL_NEAREST)
         pyglet.gl.glTexParameteri(pyglet.gl.GL_TEXTURE_2D, pyglet.gl.GL_TEXTURE_MIN_FILTER, pyglet.gl.GL_NEAREST)
 
@@ -202,7 +199,7 @@ class DeepAgent_Vis(pyglet.window.Window):
 
     def update(self, dt):
         if self.done:
-            self.state = env.reset()
+            self.state = self.env.reset()
             self.episode_reward_sum = [0]
             self.done = False
 
@@ -210,8 +207,8 @@ class DeepAgent_Vis(pyglet.window.Window):
         q_vals = self.policy.predict(tf.constant(state)).numpy()[0]
         action = np.argmax(q_vals)
 
-        state, reward, done, _ = env.step(action)
-        self.render_img = env.render(mode='rgb_array')
+        state, reward, done, _ = self.env.step(action)
+        self.render_img = self.env.render(mode='rgb_array')
         self.q_vals = q_vals
         self.state = state
         self.done = done
@@ -222,18 +219,3 @@ class DeepAgent_Vis(pyglet.window.Window):
         if self.done:
             self.eval_rewards.append(self.episode_reward_sum)
             self.values = []
-
-
-if __name__ == "__main__":
-    config = PongConfig
-    # Create environment
-    env = testEnvWrapper(config, GameEnv)
-    print("The environment has the following {} actions: {}".format(env.env.action_space.n,
-                                                                    env.env.unwrapped.get_action_meanings()))
-    agent_policy = testPolicyWrapper(config, DuelingPolicy, env)
-    agent_policy.load('./models/DDDQN_PongNoFrameskip-v4/best/main/')
-
-    window = DeepAgent_Vis(agent_policy, width=1400, height=720, caption="RL Visualizer", resizable=False)
-
-    pyglet.clock.schedule_interval(window.update, window.frame_rate)
-    pyglet.app.run()

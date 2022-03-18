@@ -1,12 +1,12 @@
 from DeepAgent.policy import DuelingPolicy
-from DeepAgent.utils import PrioritizedExperienceReplay, GameEnv, trainWrapper
+from DeepAgent.utils import PrioritizedExperienceReplay, GameEnv, TrainWrapper
 from DeepAgent.agents import D3NPERAgent
 
 from atari_config import PongConfig
 
 if __name__ == '__main__':
     _config = PongConfig
-    agent = trainWrapper(
+    agent = TrainWrapper(
         config=_config,
         env=GameEnv,
         buffer=PrioritizedExperienceReplay,
