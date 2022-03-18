@@ -166,8 +166,7 @@ class OffPolicy(ABC):
         """
         if self.saving_model:
             self.display_message('Saving Weights...')
-            self.policy_network.save(path + '/main/')
-            self.target_network.save(path + '/target/')
+            self.policy_network.save(path)
             self.display_message(f'Successfully saving to {path}')
 
     def load_model(self, path):
@@ -175,8 +174,7 @@ class OffPolicy(ABC):
         Load policy_network weight from saving_path
         """
         self.display_message('Loading Weights...')
-        self.policy_network.load(path + '/main/')
-        self.target_network.load(path + '/target/')
+        self.policy_network.load(path)
         self.display_message(f'Loaded from {path}')
 
     def sync_target_model(self):
@@ -255,7 +253,7 @@ class OffPolicy(ABC):
             'episode': [self.episode],
             'best_validation': [self.max_validation_score],
         }
-        self.write_from_dict(data, path=model_path + '/history_check_point.json')
+        self.write_from_dict(data, path=model_path + 'history_check_point.json')
         self.save_model(model_path)
 
     def load_history_from_path(self, path):
@@ -314,7 +312,7 @@ class OffPolicy(ABC):
             )
             self.real_best_mean_reward = self.real_mean_reward
             if self.saving_model:
-                path = self.saving_path + '/best'
+                path = self.saving_path + '/best/'
                 self.check_and_create_path(path)
                 self.update_history(model_path=path)
 
@@ -345,7 +343,7 @@ class OffPolicy(ABC):
             )
             self.max_validation_score = self.validation_score
             if self.saving_path:
-                saving_path = self.saving_path + '/valid'
+                saving_path = self.saving_path + '/valid/'
                 self.check_and_create_path(saving_path)
                 self.update_history(model_path=saving_path)
 
@@ -380,11 +378,12 @@ class OffPolicy(ABC):
 
         load = False
 
-        path = self.saving_path + '/best'
+        path = self.saving_path + '/best/'
         if self.saving_model and Path(path + self.history_dict_file).is_file():
             self.display_message(f'Load history from {path + self.history_dict_file}')
             load = True
             self.load_history_from_path(path)
+            self.sync_target_model()
         else:
             self.total_step = 0
         self.fill_buffer(load=load)
