@@ -76,8 +76,7 @@ class Client:
                 print("The environment has the following {} actions: {}"
                       .format(env.env.action_space.n, env.env.unwrapped.get_action_meanings()))
 
-                window = DeepAgent_Vis(agent_policy, env,
-                                       width=1400, height=720, caption="RL Visualizer", resizable=False)
+                window = DeepAgent_Vis(args.agent, agent_policy, env)
 
                 pyglet.clock.schedule_interval(window.update, window.frame_rate)
                 pyglet.app.run()

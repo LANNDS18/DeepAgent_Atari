@@ -95,3 +95,7 @@ class BaseNNPolicy(ABC):
     def update_lr(self):
         self.update_counter += 1
         self.optimizer._set_hyper('learning_rate', self._get_current_lr())
+
+    def get_last_conv2d_name(self):
+        last_conv_layer_name = list(filter(lambda x: isinstance(x, tf.keras.layers.Conv2D), self.model.layers))[-1].name
+        return last_conv_layer_name
