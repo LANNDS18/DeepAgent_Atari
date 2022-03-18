@@ -85,23 +85,22 @@ def testEnvWrapper(config, env):
     return _env
 
 
-def testAgentWrapper(agent, _env, _policy, _buffer):
-    _agent = agent(
-        env=_env,
-        policy_network=_policy,
-        target_network=_policy,
-        buffer=_buffer,
+def testPolicyWrapper(config, policy, _env):
+    _policy = policy(
+        conv_layers=config.CONV_LAYERS,
+        dense_layers=None,
+        input_shape=config.IMAGE_SHAPE,
+        frame_stack=config.FRAME_STACK,
+        n_actions=_env.action_space.n,
+        optimizer=config.OPTIMIZER,
+        lr_schedule=config.LEARNING_RATE,
+        one_step_weight=1.0,
+        l2_weight=0.0
     )
-    return _agent
+    return _policy
 
 
-def testWrapper(config, agent, env, policy, buffer):
-    _env = testEnvWrapper(config, env)
-
-    _buffer = buffer(
-        size=config.TEST_BUFFER_SIZE,
-        batch_size=config.TEST_BATCH_SIZE,
-    )
+def testNonEnvWrapper(config, agent, buffer, policy, _env):
 
     _policy = policy(
         conv_layers=config.CONV_LAYERS,
@@ -115,6 +114,23 @@ def testWrapper(config, agent, env, policy, buffer):
         l2_weight=0.0
     )
 
-    _agent = testAgentWrapper(agent, _env, _policy, _buffer)
+    _buffer = buffer(
+        size=config.TEST_BUFFER_SIZE,
+        batch_size=config.TEST_BATCH_SIZE,
+    )
+
+    _agent = agent(
+        env=_env,
+        policy_network=_policy,
+        target_network=_policy,
+        buffer=_buffer,
+    )
+    return _agent
+
+
+def testWrapper(config, agent, env, policy, buffer):
+    _env = testEnvWrapper(config, env)
+
+    _agent = testNonEnvWrapper(config, agent, buffer, policy, _env)
 
     return _agent

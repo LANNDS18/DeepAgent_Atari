@@ -13,7 +13,7 @@ setup(
     python_requires='>=3.8',
     install_requires=[
         'tensorflow-macos',
-        'keras',
+        'pyglet',
         'termcolor',
         'pandas',
         'jupyter',

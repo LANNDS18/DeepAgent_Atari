@@ -1,9 +1,12 @@
 import tensorflow as tf
 
-from keras.models import Model
-from keras.layers import Input, Conv2D, Flatten, Dense, Lambda
-from keras.initializers.initializers_v2 import VarianceScaling
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
+
+Input = tf.keras.layers.Input
+Conv2D = tf.keras.layers.Conv2D
+Flatten = tf.keras.layers.Flatten
+Dense = tf.keras.layers.Dense
+Lambda = tf.keras.layers.Lambda
 
 
 class CNNPolicy(BaseNNPolicy):
@@ -51,10 +54,10 @@ class CNNPolicy(BaseNNPolicy):
                                       )(dense_input))
 
         out_layer = Dense(units=self.n_actions,
-                          kernel_initializer=VarianceScaling(scale=2.0),
+                          kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
                           name='out_layer'
                           )(dense_layers[-1])
 
-        model = Model(inputs=[model_input], outputs=[out_layer])
+        model = tf.keras.models.Model(inputs=[model_input], outputs=[out_layer])
         model.summary()
         return model

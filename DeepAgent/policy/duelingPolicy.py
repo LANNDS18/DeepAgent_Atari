@@ -1,9 +1,12 @@
 import tensorflow as tf
 
-from keras.models import Model
-from keras.layers import Input, Conv2D, Flatten, Dense, Lambda
-from keras.initializers.initializers_v2 import VarianceScaling
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
+
+Input = tf.keras.layers.Input
+Conv2D = tf.keras.layers.Conv2D
+Flatten = tf.keras.layers.Flatten
+Dense = tf.keras.layers.Dense
+Lambda = tf.keras.layers.Lambda
 
 
 class DuelingPolicy(BaseNNPolicy):
@@ -38,12 +41,12 @@ class DuelingPolicy(BaseNNPolicy):
         value_stream, advantage_stream = tf.split(conv_layers[-1], 2, 3)
 
         value_layer = Dense(units=1,
-                            kernel_initializer=VarianceScaling(scale=2.0),
+                            kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
                             name='value_layer'
                             )(Flatten()(value_stream))
 
         advantage_layer = Dense(units=self.n_actions,
-                                kernel_initializer=VarianceScaling(scale=2.0),
+                                kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
                                 name='advantage_layer'
                                 )(Flatten()(advantage_stream))
 
@@ -51,6 +54,6 @@ class DuelingPolicy(BaseNNPolicy):
                                                    tf.reduce_mean(advantage_layer, axis=1,
                                                                   keepdims=True))
 
-        model = Model(inputs=[model_input], outputs=[out_layer])
+        model = tf.keras.models.Model(inputs=[model_input], outputs=[out_layer])
         model.summary()
         return model

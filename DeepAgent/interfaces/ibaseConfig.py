@@ -1,6 +1,5 @@
+import tensorflow as tf
 from abc import ABC
-from keras.optimizer_v2.adam import Adam
-from keras.initializers.initializers_v2 import VarianceScaling
 
 
 class BaseConfig(ABC):
@@ -54,11 +53,11 @@ class BaseConfig(ABC):
         'strides': [4, 2, 1],
         'paddings': ['valid' for _ in range(3)],
         'activations': ['relu' for _ in range(3)],
-        'initializers': [VarianceScaling(scale=2.0) for _ in range(3)],
+        'initializers': [tf.initializers.VarianceScaling(scale=2.) for _ in range(3)],
         'names': ['conv_%i' % i for i in range(1, 4)]
     }
 
-    OPTIMIZER = Adam
+    OPTIMIZER = tf.keras.optimizers.Adam
 
     """
     Buffer Parameters

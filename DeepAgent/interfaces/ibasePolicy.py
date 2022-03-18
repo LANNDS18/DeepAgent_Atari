@@ -1,10 +1,7 @@
-import tensorflow as tf
-import numpy as np
-
-from keras.optimizers import adam_v2
-from keras.initializers.initializers_v2 import VarianceScaling
-from keras.losses import Huber
 from abc import ABC
+
+import numpy as np
+import tensorflow as tf
 
 
 class BaseNNPolicy(ABC):
@@ -15,9 +12,9 @@ class BaseNNPolicy(ABC):
                  input_shape=(84, 84),
                  frame_stack=4,
                  n_actions=6,
-                 optimizer=adam_v2.Adam,
+                 optimizer=tf.keras.optimizers.Adam,
                  lr_schedule=None,
-                 loss_function=Huber(reduction=tf.keras.losses.Reduction.NONE),
+                 loss_function=tf.keras.losses.Huber(reduction=tf.keras.losses.Reduction.NONE),
                  one_step_weight=1.0,
                  n_step_weight=1.0,
                  l2_weight=0.0,
@@ -29,14 +26,14 @@ class BaseNNPolicy(ABC):
             'strides': [4, 2, 1],
             'paddings': ['valid' for _ in range(3)],
             'activations': ['relu' for _ in range(3)],
-            'initializers': [VarianceScaling(scale=2.0) for _ in range(3)],
+            'initializers': [tf.initializers.VarianceScaling(scale=2.0) for _ in range(3)],
             'names': ['conv_%i' % i for i in range(1, 4)]
         } if conv_layers is None else conv_layers
 
         self.dense_layers = {
             'units': [512],
             'activations': ['relu'],
-            'initializers': [VarianceScaling(scale=2.0)],
+            'initializers': [tf.initializers.VarianceScaling(scale=2.0)],
             'names': ['dense_1']
         } if dense_layers is None else dense_layers
 
