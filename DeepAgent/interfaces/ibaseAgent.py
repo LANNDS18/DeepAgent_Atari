@@ -61,6 +61,7 @@ class OffPolicy(ABC):
 
         self.total_step = 0
         self.episode = 0
+        self.is_render = False
 
         self.max_steps = None
         self.target_reward = None
@@ -332,7 +333,8 @@ class OffPolicy(ABC):
                 self.state = next_state
                 self.done = self.env.was_real_done
                 step += 1
-                self.env.render()
+                if self.is_render:
+                    self.env.render()
             total_reward += self.env.episode_returns
 
         self.validation_score = total_reward / float(validation_episode)
@@ -359,13 +361,15 @@ class OffPolicy(ABC):
             self.display_learning_state()
             self.reset_episode_parameters()
 
-    def init_training(self, max_steps, target_reward):
+    def init_training(self, max_steps, target_reward, render):
         """
         Initialize training start time & policy_network (self.policy_network / self.target_network)
         Args:
             max_steps: Maximum time total_step, if exceeded, the training will stop.
             target_reward: target reward that agent are expected to reach.
+            render: render env in training
         """
+        self.is_render = render
         self.target_reward = target_reward
         self.max_steps = max_steps
         self.reset_env()
@@ -405,11 +409,11 @@ class OffPolicy(ABC):
             f'train_step() should be implemented by {self.__class__.__name__} subclasses'
         )
 
-    def at_step_end(self, render=False):
-        if render:
+    def at_step_end(self):
+        if self.is_render:
             self.env.render()
 
-    def learn(self, max_steps, target_reward=None, render=False, ):
+    def learn(self, max_steps, target_reward=None, render=False,):
         """
         Common training loop shared by subclasses, monitors training status
         and progress, performs all training total_step, updates metrics, and logs progress.
@@ -418,7 +422,7 @@ class OffPolicy(ABC):
              target_reward: The target moving average reward, if reached the training will stop, if null will be ignored
              render: render the game
         """
-        self.init_training(max_steps, target_reward)
+        self.init_training(max_steps, target_reward, render)
         while True:
             self.check_episodes()
             if self.check_finish_training():

@@ -148,10 +148,10 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
 
             self.update_gradient(target_q, n_step_target_q, states, actions)
 
-    def at_step_end(self, render=False):
+    def at_step_end(self):
         if self.total_step % self.target_sync_freq == 0:
             self.sync_target_model()
-        super().at_step_end(render=render)
+        super().at_step_end()
 
     def learn(
             self,
@@ -166,7 +166,7 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             if null will be ignored
             render: display the env of training
         """
-        self.init_training(max_steps, target_reward)
+        self.init_training(max_steps, target_reward, render)
         while True:
             self.check_episodes()
             if self.check_finish_training():
@@ -174,4 +174,4 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             while not self.done:
                 self.at_step_start()
                 self.train_step()
-                self.at_step_end(render)
+                self.at_step_end()
