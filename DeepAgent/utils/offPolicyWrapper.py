@@ -55,7 +55,8 @@ def TrainWrapper(config, env, buffer, policy, agent, train_id):
         lr_schedule=config.LEARNING_RATE,
         one_step_weight=config.ONE_STEP_WEIGHT,
         n_step_weight=config.N_STEP_WEIGHT,
-        l2_weight=0.0
+        l2_weight=0.0,
+        quiet=True,
     )
 
     _agent = agent(

@@ -18,6 +18,7 @@ class BaseNNPolicy(ABC):
                  one_step_weight=1.0,
                  n_step_weight=1.0,
                  l2_weight=0.0,
+                 quiet=False,
                  ):
 
         self.conv_layers = {
@@ -57,6 +58,8 @@ class BaseNNPolicy(ABC):
         self.update_counter = 0
 
         self.model = self.build()
+        if not quiet:
+            self.model.summary()
 
     def build(self):
         """

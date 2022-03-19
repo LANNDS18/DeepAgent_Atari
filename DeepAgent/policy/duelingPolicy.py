@@ -55,5 +55,4 @@ class DuelingPolicy(BaseNNPolicy):
                                                                   keepdims=True))
 
         model = tf.keras.models.Model(inputs=[model_input], outputs=[out_layer])
-        model.summary()
         return model
