@@ -106,16 +106,15 @@ class PrioritizedExperienceReplay(ExperienceReplay):
             self._buffer.append(transition)
             self.priorities = np.append(
                 self.priorities,
-                self.epsilon if self.priorities.size == 0 else self.priorities.max())
+                self.epsilon if self.priorities.size == 0 else np.amax(self.priorities))
         else:
             idx = np.argmin(self.priorities)
             self._buffer[idx] = transition
-            self.priorities[idx] = self.priorities.max()
+            self.priorities[idx] = np.amax(self.priorities)
         self.current_size = len(self._buffer)
 
-    # Todddo: fix
     def get_sample_indices(self):
-        probs = self.priorities[:-self.n_step] ** self.prob_alpha
+        probs = np.copy(self.priorities[:-self.n_step])
         probs /= probs.sum()
         indices = np.random.choice(self.current_size - self.n_step,
                                    self.batch_size,
@@ -123,14 +122,14 @@ class PrioritizedExperienceReplay(ExperienceReplay):
                                    replace=False)
         return indices
 
-    def update_priorities(self, indices, abs_errors):
+    def update_priorities(self, indices, errors):
         """
         Update priorities for chosen samples
         Args:
-            abs_errors: abs of Y and Y_Predict
+            errors: abs of Y and Y_Predict
             indices: The index of the element
         """
-        self.priorities[indices] = abs_errors + self.epsilon
+        self.priorities[indices] = errors ** self.prob_alpha + self.epsilon
 
     def __len__(self):
         return len(self._buffer)

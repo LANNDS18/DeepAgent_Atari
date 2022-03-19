@@ -1,4 +1,5 @@
 import tensorflow as tf
+
 from DeepAgent.agents.doubleDQN import DoubleDQNAgent
 from DeepAgent.utils.buffer import PrioritizedExperienceReplay
 
@@ -27,6 +28,62 @@ class D3NPERAgent(DoubleDQNAgent):
         assert (isinstance(self.buffer, PrioritizedExperienceReplay)), \
             'The buffer should be a PrioritizedExperienceReplay buffer.'
 
+    @tf.function
+    def get_target(self, rewards, dones, next_states):
+        """
+        get target q for both single step and n_step
+
+        Args:
+            rewards (tf.float32): Batch of rewards.
+            dones (tf.bool): Batch of terminal status.
+            next_states (tf.float32): Batch of next states.
+        """
+        action_online = tf.math.argmax(self.policy_network.predict(next_states), axis=1)
+        double_q = tf.reduce_sum(self.target_network.predict(next_states)
+                                 * tf.one_hot(action_online, self.n_actions, 1.0, 0.0), axis=1)
+
+        target_q = rewards + self.gamma * double_q * (1.0 - tf.cast(dones, tf.float32))
+
+        return target_q
+
+    @tf.function
+    def update_gradient(self, target_q, states, actions, batch_weights=1):
+
+        """
+        Update main q network by experience replay method.
+
+        Args:
+            target_q (tf.float32): Target Q value for barch.
+
+            states (tf.float32): Batch of states.
+            actions (tf.int32): Batch of actions.
+
+            batch_weights(tf.float32): weights of this batch.
+        """
+
+        self.policy_network.update_lr()
+        with tf.GradientTape() as tape:
+            tape.watch(self.policy_network.model.trainable_weights)
+            main_q = tf.reduce_sum(
+                self.policy_network.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
+                axis=1)
+
+            losses = self.policy_network.loss_function(main_q, target_q) * self.policy_network.one_step_weight
+
+            if self.policy_network.l2_weight > 0:
+                losses += self.policy_network.l2_weight * tf.reduce_sum(
+                    [tf.reduce_sum(tf.square(layer_weights))
+                     for layer_weights in self.policy_network.model.trainable_weights])
+
+            loss = tf.reduce_mean(losses * batch_weights)
+
+        self.policy_network.optimizer.minimize(loss, self.policy_network.model.trainable_variables, tape=tape)
+
+        self.loss_metric.update_state(loss)
+        self.q_metric.update_state(main_q)
+
+        return main_q, loss
+
     def train_step(self):
         """
         Perform 1 step which controls action_selection, interaction with environments
@@ -43,10 +100,14 @@ class D3NPERAgent(DoubleDQNAgent):
         if self.total_step % self.model_update_freq == 0:
             indices = self.buffer.get_sample_indices()
             states, actions, rewards, dones, next_states = self.buffer.get_sample(indices)
-            n_step_rewards, n_step_dones, n_step_next = self.buffer.get_n_step_sample(indices, gamma=self.gamma)
-            target_q, n_step_target_q = self.get_target(rewards, dones, next_states,
-                                                        n_step_rewards, n_step_dones, n_step_next)
 
-            main_q, loss = self.update_gradient(target_q, n_step_target_q, states, actions)
-            abs_error = abs(main_q - target_q)
-            self.buffer.update_priorities(indices, abs_error)
+            target_q = self.get_target(rewards, dones, next_states)
+            main_q, loss = self.update_gradient(target_q, states, actions)
+
+            error = main_q - target_q
+            is_small_error = tf.abs(error) < 1
+            squared_loss = tf.square(error) / 2
+            linear_loss = tf.abs(error) - 0.5
+            error = tf.where(is_small_error, squared_loss, linear_loss)
+
+            self.buffer.update_priorities(indices, error)

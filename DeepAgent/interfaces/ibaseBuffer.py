@@ -8,25 +8,19 @@ class BaseBuffer:
     Base class for replay buffer.
     """
 
-    def __init__(self, size, initial_size=None, batch_size=32, n_step=0):
+    def __init__(self, size, batch_size=32, n_step=0):
         """
         Initialize replay buffer.
         Args:
             size: Buffer maximum size.
-            initial_size: Buffer initial size to be filled before training starts.
-                To be used by caller.
             batch_size: Size of the batch that should be used in get_sample() implementation.
+            n_step: The reward after n_step after applying discount factor
         """
-        assert (
-                initial_size is None or initial_size > 0
-        ), f'Buffer initial size should be > 0, got {initial_size}'
         assert size > 0, f'Buffer size should be > 0,  got {size}'
         assert batch_size > 0, f'Buffer batch size should be > 0, got {batch_size}'
         assert (
                 batch_size <= size
         ), f'Buffer batch size `{batch_size}` should be <= size `{size}`'
-        if initial_size:
-            assert size >= initial_size, 'Buffer initial size exceeds max size'
         self.size = size
         self.batch_size = batch_size
         self.n_step = n_step
