@@ -1,4 +1,4 @@
-from DeepAgent.policy import CNNPolicy, DuelingPolicy
+from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet
 from DeepAgent.agents import DQNAgent, DoubleDQNAgent, D3NPERAgent
 from DeepAgent.utils import ExperienceReplay, PrioritizedExperienceReplay
 from atari_config import PongConfig, DemonAttackConfig, EnduroConfig
@@ -6,9 +6,10 @@ from atari_config import PongConfig, DemonAttackConfig, EnduroConfig
 from DeepAgent.client import Client
 
 agent_configs = {
-    'DQN': [ExperienceReplay, CNNPolicy, DQNAgent],
-    'DDDDQN': [ExperienceReplay, DuelingPolicy, DoubleDQNAgent],
-    'D3n_PER': [PrioritizedExperienceReplay, DuelingPolicy, D3NPERAgent]
+    'DQN': [ExperienceReplay, DQNNetwork, DQNAgent],
+    'DDDDQN': [ExperienceReplay, DuelingNetwork, DoubleDQNAgent],
+    'D3n_PER': [PrioritizedExperienceReplay, DuelingNetwork, D3NPERAgent],
+    'ResNet_DQN': [ExperienceReplay, DuelingResNet, DoubleDQNAgent],
 }
 
 game_configs = {

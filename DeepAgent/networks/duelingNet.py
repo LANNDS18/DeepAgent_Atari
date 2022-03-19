@@ -1,13 +1,13 @@
 import tensorflow as tf
 
-from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
+from DeepAgent.interfaces.ibaseNetwork import BaseNetwork
 
 
-class CNNPolicy(BaseNNPolicy):
+class DuelingNetwork(BaseNetwork):
 
     def __init__(self, **kwargs):
 
-        super(CNNPolicy, self).__init__(**kwargs)
+        super(DuelingNetwork, self).__init__(**kwargs)
 
     def build(self):
 
@@ -32,25 +32,21 @@ class CNNPolicy(BaseNNPolicy):
                                                       use_bias=False
                                                       )(conv_input))
 
-        flatten = tf.keras.layers.Flatten()(conv_layers[-1])
-        dense_layers = []
+        value_stream, advantage_stream = tf.split(conv_layers[-1], 2, 3)
 
-        for layer_id in tf.range(len(self.dense_layers['units'])):
-            if layer_id == 0:
-                dense_input = flatten
-            else:
-                dense_input = dense_layers[-1]
+        value_layer = tf.keras.layers.Dense(units=1,
+                                            kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
+                                            name='value_layer'
+                                            )(tf.keras.layers.Flatten()(value_stream))
 
-            dense_layers.append(tf.keras.layers.Dense(units=self.dense_layers['units'][layer_id],
-                                                      activation=self.dense_layers['activations'][layer_id],
-                                                      kernel_initializer=self.dense_layers['initializers'][layer_id],
-                                                      name=self.dense_layers['names'][layer_id]
-                                                      )(dense_input))
+        advantage_layer = tf.keras.layers.Dense(units=self.n_actions,
+                                                kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
+                                                name='advantage_layer'
+                                                )(tf.keras.layers.Flatten()(advantage_stream))
 
-        out_layer = tf.keras.layers.Dense(units=self.n_actions,
-                                          kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
-                                          name='out_layer'
-                                          )(dense_layers[-1])
+        out_layer = value_layer + tf.math.subtract(advantage_layer,
+                                                   tf.reduce_mean(advantage_layer, axis=1,
+                                                                  keepdims=True))
 
         model = tf.keras.models.Model(inputs=[model_input], outputs=[out_layer])
         return model

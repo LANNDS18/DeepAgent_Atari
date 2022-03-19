@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 
-class BaseNNPolicy(ABC):
+class BaseNetwork(ABC):
 
     def __init__(self,
                  conv_layers=None,

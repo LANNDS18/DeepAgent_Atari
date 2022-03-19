@@ -1,13 +1,13 @@
 import tensorflow as tf
 
-from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
+from DeepAgent.interfaces.ibaseNetwork import BaseNetwork
 
 
-class ResNet50Policy(BaseNNPolicy):
+class DuelingResNet(BaseNetwork):
 
     def __init__(self, **kwargs):
 
-        super(ResNet50Policy, self).__init__(**kwargs)
+        super(DuelingResNet, self).__init__(**kwargs)
 
     def build(self):
         model_input = tf.keras.layers.Input(shape=(self.input_shape[0], self.input_shape[1], self.frame_stack))
