@@ -16,7 +16,6 @@ setup(
         'pyglet',
         'termcolor',
         'pandas',
-        'jupyter',
         'matplotlib',
         'gym',
         'numpy',

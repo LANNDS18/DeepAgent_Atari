@@ -79,9 +79,6 @@ class Client:
             elif args.visualization:
                 env, agent_policy = VisualizationWrapper(_config, GameEnv, policy_fn)
                 agent_policy.load(args.load_dir)
-                print("The environment has the following {} actions: {}"
-                      .format(env.env.action_space.n, env.env.unwrapped.get_action_meanings()))
-
                 window = DeepAgent_Vis(args.agent, agent_policy, env)
 
                 pyglet.clock.schedule_interval(window.update, window.frame_rate)
