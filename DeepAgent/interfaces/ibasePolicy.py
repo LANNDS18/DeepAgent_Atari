@@ -21,7 +21,7 @@ class BaseNNPolicy(ABC):
                  quiet=False,
                  ):
 
-        self.conv_layers = {
+        conv_layers = {
             'filters': [32, 64, 64],
             'kernel_sizes': [8, 4, 3],
             'strides': [4, 2, 1],
@@ -31,7 +31,7 @@ class BaseNNPolicy(ABC):
             'names': ['conv_%i' % i for i in range(1, 4)]
         } if conv_layers is None else conv_layers
 
-        self.dense_layers = {
+        dense_layers = {
             'units': [512],
             'activations': ['relu'],
             'initializers': [tf.initializers.VarianceScaling(scale=2.0)],
@@ -45,6 +45,9 @@ class BaseNNPolicy(ABC):
         self.n_actions = n_actions
         self.input_shape = input_shape
         self.frame_stack = frame_stack
+
+        self.conv_layers = conv_layers
+        self.dense_layers = dense_layers
 
         self.optimizer = optimizer(learning_rate=lr_schedule[0][0])
         self.loss_function = loss_function

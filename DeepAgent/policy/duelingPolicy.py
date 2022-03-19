@@ -2,12 +2,6 @@ import tensorflow as tf
 
 from DeepAgent.interfaces.ibasePolicy import BaseNNPolicy
 
-Input = tf.keras.layers.Input
-Conv2D = tf.keras.layers.Conv2D
-Flatten = tf.keras.layers.Flatten
-Dense = tf.keras.layers.Dense
-Lambda = tf.keras.layers.Lambda
-
 
 class DuelingPolicy(BaseNNPolicy):
 
@@ -17,8 +11,8 @@ class DuelingPolicy(BaseNNPolicy):
 
     def build(self):
 
-        model_input = Input(shape=(self.input_shape[0], self.input_shape[1], self.frame_stack))
-        scale = Lambda(lambda p: p / 255.0)(model_input)
+        model_input = tf.keras.layers.Input(shape=(self.input_shape[0], self.input_shape[1], self.frame_stack))
+        scale = tf.keras.layers.Lambda(lambda p: p / 255.0)(model_input)
 
         conv_layers = []
 
@@ -28,27 +22,27 @@ class DuelingPolicy(BaseNNPolicy):
             else:
                 conv_input = conv_layers[-1]
 
-            conv_layers.append(Conv2D(filters=self.conv_layers['filters'][layer_id],
-                                      kernel_size=self.conv_layers['kernel_sizes'][layer_id],
-                                      strides=self.conv_layers['strides'][layer_id],
-                                      padding=self.conv_layers['paddings'][layer_id],
-                                      activation=self.conv_layers['activations'][layer_id],
-                                      kernel_initializer=self.conv_layers['initializers'][layer_id],
-                                      name=self.conv_layers['names'][layer_id],
-                                      use_bias=False
-                                      )(conv_input))
+            conv_layers.append(tf.keras.layers.Conv2D(filters=self.conv_layers['filters'][layer_id],
+                                                      kernel_size=self.conv_layers['kernel_sizes'][layer_id],
+                                                      strides=self.conv_layers['strides'][layer_id],
+                                                      padding=self.conv_layers['paddings'][layer_id],
+                                                      activation=self.conv_layers['activations'][layer_id],
+                                                      kernel_initializer=self.conv_layers['initializers'][layer_id],
+                                                      name=self.conv_layers['names'][layer_id],
+                                                      use_bias=False
+                                                      )(conv_input))
 
         value_stream, advantage_stream = tf.split(conv_layers[-1], 2, 3)
 
-        value_layer = Dense(units=1,
-                            kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
-                            name='value_layer'
-                            )(Flatten()(value_stream))
+        value_layer = tf.keras.layers.Dense(units=1,
+                                            kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
+                                            name='value_layer'
+                                            )(tf.keras.layers.Flatten()(value_stream))
 
-        advantage_layer = Dense(units=self.n_actions,
-                                kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
-                                name='advantage_layer'
-                                )(Flatten()(advantage_stream))
+        advantage_layer = tf.keras.layers.Dense(units=self.n_actions,
+                                                kernel_initializer=tf.initializers.VarianceScaling(scale=2.0),
+                                                name='advantage_layer'
+                                                )(tf.keras.layers.Flatten()(advantage_stream))
 
         out_layer = value_layer + tf.math.subtract(advantage_layer,
                                                    tf.reduce_mean(advantage_layer, axis=1,

@@ -488,9 +488,11 @@ class OffPolicy(ABC):
                 state = env.reset()
 
                 if max_episode and episode >= max_episode:
-                    self.display_message(f'Maximum total_step {max_episode} exceeded')
+                    self.display_message(f'Maximum replay episode exceeded')
                     break
             steps += 1
+        avg_reward = np.mean(total_reward)
+        self.display_message(f'Average reward for {max_episode} episodes is {avg_reward}')
         env.close()
         return total_reward
 
