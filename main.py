@@ -8,7 +8,7 @@ from DeepAgent.client import Client
 agent_configs = {
     'DQN': [ExperienceReplay, CNNPolicy, DQNAgent],
     'DDDDQN': [ExperienceReplay, DuelingPolicy, DoubleDQNAgent],
-    'D3n_PER': [PrioritizedExperienceReplay, DuelingPolicy, D3NPERAgent,]
+    'D3n_PER': [PrioritizedExperienceReplay, DuelingPolicy, D3NPERAgent]
 }
 
 game_configs = {
@@ -22,4 +22,3 @@ if __name__ == "__main__":
     args = client.args_parse()
     print(args)
     client.process_args(args)
-

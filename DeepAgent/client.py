@@ -12,8 +12,10 @@ class Client:
             agent_configs,
             game_configs,
     ):
-        assert isinstance(agent_configs, dict)
-        assert isinstance(game_configs, dict)
+        assert isinstance(agent_configs, dict), \
+            'agent_configs should be a dict in {"agent_name": [buffer, policy, agent], ...} format'
+        assert isinstance(game_configs, dict), \
+            'game_configs should be a dict in {"config_id": config, ...} format'
 
         self.agent_configs = agent_configs
         self.agent_config_id = agent_configs.keys()
