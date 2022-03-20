@@ -68,7 +68,7 @@ class D3NPERAgent(DoubleDQNAgent):
                 self.policy_network.model(states) * tf.one_hot(actions, self.n_actions, 1.0, 0.0),
                 axis=1)
 
-            losses = self.policy_network.loss_function(main_q, target_q) * self.policy_network.one_step_weight
+            losses = self.policy_network.loss_function(main_q, target_q)
 
             if self.policy_network.l2_weight > 0:
                 losses += self.policy_network.l2_weight * tf.reduce_sum(

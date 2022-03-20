@@ -6,7 +6,7 @@ import argparse
 import pyglet
 
 
-class Client:
+class DQNClient:
     def __init__(
             self,
             agent_configs,
