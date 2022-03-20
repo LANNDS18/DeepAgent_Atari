@@ -1,4 +1,5 @@
 import io
+from collections import deque
 
 import cv2
 import numpy as np
@@ -32,11 +33,13 @@ def display_nparray(arr, max_width=500):
 
 
 class DeepAgent_Vis(pyglet.window.Window):
-    def __init__(self, agent_id, policy, env, width=1350, height=720, caption="RL Visualizer", resizable=False):
+    def __init__(self, agent_id, policy, env, max_episode=5, width=1350, height=720, caption="RL Visualizer",
+                 resizable=False):
         super().__init__(width, height, caption, resizable)
         self.id = agent_id
         self.policy = policy
         self.env = env
+        self.max_episode = max_episode
         self.font = 'Futura'
         self.font_color_light = (255, 222, 0, 255)
         self.font_color_dark = (253, 178, 4, 240)
@@ -48,11 +51,12 @@ class DeepAgent_Vis(pyglet.window.Window):
         # For keeping simulating the game
         self.done = True
         self.state = np.zeros(shape=(env.observation_space.shape[0], env.observation_space.shape[0], env.frame_stack))
-        self.eval_rewards = []
-        self.evaluate_frame_number = 0
-        self.episode_reward_sum = [0]
+        self.episode = 0
+        self.total_step = 0
+        self.episode_reward_sum = 0
 
         self.q_vals = np.zeros(shape=env.action_space.n)
+        self.q_plot = deque(maxlen=200)
         self.values = []
 
         self.action_titles = []
@@ -62,15 +66,16 @@ class DeepAgent_Vis(pyglet.window.Window):
                 pyglet.text.Label(action, font_size=10, color=self.font_color_dark, font_name=self.font,
                                   x=0, y=0, anchor_x='center'))
 
-    def show_episode_rewards(self):
+    def show_max_q(self):
         dpi_res = min(self.width, self.height) / 10
         fig = Figure((500 / dpi_res, 230 / dpi_res), dpi=dpi_res)
         ax = fig.add_subplot(111)
 
-        ax.set_title('Episode Reward', fontsize=15)
+        ax.set_title('Max Action Q', fontsize=15)
         ax.set_xticklabels([])
         ax.set_ylabel('V(s)')
-        ax.plot(self.episode_reward_sum[:])
+        self.q_plot.append(np.amax(self.q_vals))
+        ax.plot(self.q_plot)
 
         w, h = fig.get_size_inches()
         dpi_res = fig.get_dpi()
@@ -178,11 +183,17 @@ class DeepAgent_Vis(pyglet.window.Window):
 
         agent_title = pyglet.text.Label(f'Agent: {self.id}',
                                         font_size=18, color=self.font_color_light, font_name=self.font,
-                                        x=20, y=self.height - 150, anchor_y='center')
+                                        x=20, y=self.height - 130, anchor_y='center')
+
+        episode_title = pyglet.text.Label(f'Episode: {self.episode + 1}\t'
+                                          f'Reward: {self.episode_reward_sum}',
+                                          font_size=14, color=self.font_color_light, font_name=self.font,
+                                          x=20, y=self.height - 170, anchor_y='center')
 
         env_title.draw()
         n_action_title.draw()
         agent_title.draw()
+        episode_title.draw()
 
     def on_draw(self):
         self.clear()
@@ -194,7 +205,8 @@ class DeepAgent_Vis(pyglet.window.Window):
 
         self.show_title()
         self.show_render()
-        self.show_episode_rewards()
+        if self.total_step > 10:
+            self.show_max_q()
         self.show_action()
         self.show_agent_vision()
         self.show_attention()
@@ -202,7 +214,7 @@ class DeepAgent_Vis(pyglet.window.Window):
     def update(self, dt):
         if self.done:
             self.state = self.env.reset()
-            self.episode_reward_sum = [0]
+            self.episode_reward_sum = 0
             self.done = False
 
         state = tf.expand_dims(self.state, axis=0)
@@ -215,9 +227,11 @@ class DeepAgent_Vis(pyglet.window.Window):
         self.state = state
         self.done = done
         self.values.append(q_vals[action])
-        self.evaluate_frame_number += 1
-        self.episode_reward_sum.append(reward + self.episode_reward_sum[-1])
+        self.episode_reward_sum += reward
+        self.total_step += 1
 
         if self.done:
-            self.eval_rewards.append(self.episode_reward_sum)
+            self.episode += 1
             self.values = []
+            if self.episode >= self.max_episode:
+                self.close()
