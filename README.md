@@ -28,6 +28,52 @@ tensorflow 2.0+ is initially running on CPU, tensorflow-gpu and tensorflow-metal
 
 `python -m pip install tensorflow-metal`
 
+## Architecture
+```
+├── DeepAgent
+│   ├── __init__.py
+│   ├── agents
+│   │   ├── __init__.py
+│   │   ├── d3nPER.py
+│   │   ├── doubleDQN.py
+│   │   └── dqn.py
+│   ├── interfaces
+│   │   ├── __init__.py
+│   │   ├── ibaseAgent.py
+│   │   ├── ibaseBuffer.py
+│   │   ├── ibaseConfig.py
+│   │   └── ibaseNetwork.py
+│   ├── networks
+│   │   ├── __init__.py
+│   │   ├── dqnNet.py
+│   │   ├── duelingNet.py
+│   │   └── duelingResNet50.py
+│   ├── utils
+│   │   ├── __init__.py
+│   │   ├── buffer.py
+│   │   ├── common.py
+│   │   ├── game.py
+│   │   └── offPolicyWrapper.py
+│   ├── client.py
+│   └── visualization.py
+├── LICENSE
+├── README.md
+├── atari_config.py
+├── evaluation.py
+├── log
+│   └── ...
+├── main.py
+├── models
+│   └── ...
+├── setup.py
+├── train_PER.py
+├── train_dddqn.py
+├── train_dqn.py
+├── video
+│   └── ...
+└── visualization_dqn.py
+```
+
 ## Installation
 
 Clone the repository:

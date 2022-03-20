@@ -3,7 +3,7 @@ from DeepAgent.agents import DQNAgent, DoubleDQNAgent, D3NPERAgent
 from DeepAgent.utils import ExperienceReplay, PrioritizedExperienceReplay
 from atari_config import PongConfig, DemonAttackConfig, EnduroConfig
 
-from DeepAgent.dqnclient import DQNClient
+from DeepAgent.client import DQNClient
 
 agent_configs = {
     'DQN': [ExperienceReplay, DQNNetwork, DQNAgent],
