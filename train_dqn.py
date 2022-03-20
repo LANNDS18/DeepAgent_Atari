@@ -1,4 +1,4 @@
-from DeepAgent.policy import CNNPolicy
+from DeepAgent.networks import DQNNetwork
 from DeepAgent.agents import DQNAgent
 from DeepAgent.utils import ExperienceReplay, GameEnv, TrainWrapper
 
@@ -10,7 +10,7 @@ if __name__ == '__main__':
         config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,
-        policy=CNNPolicy,
+        policy=DQNNetwork,
         agent=DQNAgent,
         train_id='DQN')
 

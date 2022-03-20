@@ -1,16 +1,16 @@
-from DeepAgent.policy import DuelingPolicy
+from DeepAgent.networks import DuelingNetwork
 from DeepAgent.agents import DoubleDQNAgent
 from DeepAgent.utils import ExperienceReplay, GameEnv, TrainWrapper
 
-from atari_config import EnduroConfig
+from atari_config import DemonAttackConfig
 
 if __name__ == '__main__':
-    _config = EnduroConfig
+    _config = DemonAttackConfig
     agent = TrainWrapper(
         config=_config,
         env=GameEnv,
         buffer=ExperienceReplay,
-        policy=DuelingPolicy,
+        policy=DuelingNetwork,
         agent=DoubleDQNAgent,
         train_id='DDDQN')
 

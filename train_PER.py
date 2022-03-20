@@ -1,4 +1,4 @@
-from DeepAgent.policy import DuelingPolicy
+from DeepAgent.networks import DuelingNetwork
 from DeepAgent.utils import PrioritizedExperienceReplay, GameEnv, TrainWrapper
 from DeepAgent.agents import D3NPERAgent
 
@@ -10,7 +10,7 @@ if __name__ == '__main__':
         config=_config,
         env=GameEnv,
         buffer=PrioritizedExperienceReplay,
-        policy=DuelingPolicy,
+        policy=DuelingNetwork,
         agent=D3NPERAgent,
         train_id='D3N_PER')
 
