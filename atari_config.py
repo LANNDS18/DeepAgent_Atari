@@ -118,4 +118,4 @@ class EnduroConfig(BaseConfig):
     TARGET_SYNC_FREQ = 10000
     SAVING_MODEL = True
     LOG_HISTORY = True
-    VIDEO_DIR = './video/Breakout'
+    VIDEO_DIR = './video/Enduro'

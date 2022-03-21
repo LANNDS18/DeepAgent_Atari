@@ -4,8 +4,8 @@ from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet
 from DeepAgent.utils import TestWrapper
 from atari_config import DemonAttackConfig, PongConfig, EnduroConfig
 
-AGENT = 0
-CONFIG = DemonAttackConfig
+AGENT = 1
+CONFIG = EnduroConfig
 
 agent_configs = {
     0: [ExperienceReplay, DQNNetwork, DQNAgent],
@@ -18,8 +18,9 @@ Loading_Path = {
     PongConfig:
         ['./models/DQN_PongNoFrameskip-v4/best/', './models/DDDQN_PongNoFrameskip-v4/best/', None],
     DemonAttackConfig:
-        ['./models/DQN_DemonAttackNoFrameskip-v4/best/', './models/DDDQN_DemonAttackNoFrameskip-v4/best/', None],
-    EnduroConfig: []
+        ['./models/DQN_DemonAttackNoFrameskip-v4/valid/', './models/DDDQN_DemonAttackNoFrameskip-v4/valid/', None],
+    EnduroConfig:
+        ['./models/DQN_EnduroNoFrameskip-v4/valid/', './models/DDDQN_EnduroNoFrameskip-v4/valid/', None],
 }
 
 

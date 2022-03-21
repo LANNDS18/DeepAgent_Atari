@@ -5,6 +5,7 @@ This repository implements Deep Q-Network (DQN) and several improvement algorith
 
 ![DemonAttackDQN](/assets/DemonAttackDQN.gif)
 ![PongDQN](/assets/PongDQN.gif)
+![EnduroDDDQN](/assets/EnduroDDDQN.gif)
 
 ## Requirements
 
