@@ -1,24 +1,29 @@
 import pyglet
-from DeepAgent.networks import DuelingNetwork, DQNNetwork, DuelingResNet
+from DeepAgent.networks import DuelingNetwork, DQNNetwork, DuelingResNet, NoisyNet
 from DeepAgent.utils import VisualizationWrapper, GameEnv
 from atari_config import EnduroConfig, PongConfig, DemonAttackConfig
 from DeepAgent.visualization import DeepAgent_Vis
 
-NETWORK = 0
+NETWORK = 1
 CONFIG = DemonAttackConfig
 
 RLNetworks = {
     0: DQNNetwork,
     1: DuelingNetwork,
-    2: DuelingResNet,
+    2: NoisyNet,
+    3: DuelingResNet,
 }
 
 Loading_Path = {
     PongConfig:
-        ['./models/DQN_PongNoFrameskip-v4/best/', './models/DDDQN_PongNoFrameskip-v4/best/', None],
+        ['./models/DQN_PongNoFrameskip-v4/best/', './models/DDDQN_PongNoFrameskip-v4/best/',
+         None, None],
     DemonAttackConfig:
-        ['./models/DQN_DemonAttackNoFrameskip-v4/best/', './models/DDDQN_DemonAttackNoFrameskip-v4/best/', None],
-    EnduroConfig: []
+        ['./models/DQN_DemonAttackNoFrameskip-v4/valid/', './models/DDDQN_DemonAttackNoFrameskip-v4/valid/',
+         None, None],
+    EnduroConfig:
+        ['./models/DQN_EnduroNoFrameskip-v4/valid/', './models/DDDQN_EnduroNoFrameskip-v4/valid/',
+         None, None]
 }
 
 

@@ -1,15 +1,16 @@
 from DeepAgent.agents import DQNAgent, DoubleDQNAgent, D3NPERAgent
 from DeepAgent.utils import GameEnv, ExperienceReplay, PrioritizedExperienceReplay
-from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet
+from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet, NoisyNet
 from DeepAgent.utils import TrainWrapper
 from atari_config import DemonAttackConfig, PongConfig, EnduroConfig
 
-AGENT = 'RES_DDDQN'
-CONFIG = DemonAttackConfig
+AGENT = 'DQN'
+CONFIG = EnduroConfig
 
 agent_configs = {
     'DQN': [ExperienceReplay, DQNNetwork, DQNAgent],
     'DDDQN': [ExperienceReplay, DuelingNetwork, DoubleDQNAgent],
+    'Noisy_DDDQN': [ExperienceReplay, NoisyNet, DoubleDQNAgent],
     'D3N_PER': [PrioritizedExperienceReplay, DuelingNetwork, D3NPERAgent],
     'ResNet_DQN': [ExperienceReplay, DuelingResNet, DoubleDQNAgent],
 }

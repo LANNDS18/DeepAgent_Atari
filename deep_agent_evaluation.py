@@ -1,17 +1,18 @@
 from DeepAgent.agents import DQNAgent, DoubleDQNAgent, D3NPERAgent
 from DeepAgent.utils import GameEnv, ExperienceReplay, PrioritizedExperienceReplay
-from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet
+from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet, NoisyNet
 from DeepAgent.utils import TestWrapper
 from atari_config import DemonAttackConfig, PongConfig, EnduroConfig
 
-AGENT = 1
-CONFIG = EnduroConfig
+AGENT = 2
+CONFIG = PongConfig
 
 agent_configs = {
     0: [ExperienceReplay, DQNNetwork, DQNAgent],
     1: [ExperienceReplay, DuelingNetwork, DoubleDQNAgent],
-    2: [PrioritizedExperienceReplay, DuelingNetwork, D3NPERAgent],
-    3: [ExperienceReplay, DuelingResNet, DoubleDQNAgent],
+    2: [ExperienceReplay, NoisyNet, DoubleDQNAgent],
+    3: [PrioritizedExperienceReplay, DuelingNetwork, D3NPERAgent],
+    4: [ExperienceReplay, DuelingResNet, DoubleDQNAgent],
 }
 
 Loading_Path = {

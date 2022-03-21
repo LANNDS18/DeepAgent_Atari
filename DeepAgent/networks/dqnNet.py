@@ -8,6 +8,7 @@ class DQNNetwork(BaseNetwork):
     def __init__(self, **kwargs):
 
         super(DQNNetwork, self).__init__(**kwargs)
+        self.build()
 
     def build(self):
 
@@ -53,4 +54,5 @@ class DQNNetwork(BaseNetwork):
                                           )(dense_layers[-1])
 
         model = tf.keras.models.Model(inputs=[model_input], outputs=[out_layer])
-        return model
+        self.model = model
+        super().build()

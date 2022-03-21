@@ -1,3 +1,4 @@
+import abc
 from abc import ABC
 
 import numpy as np
@@ -60,15 +61,16 @@ class BaseNetwork(ABC):
         self.lr_schedule[:, 2] = np.cumsum(self.lr_schedule[:, 2])
         self.update_counter = 0
 
-        self.model = self.build()
-        if not quiet:
-            self.model.summary()
+        self.quiet = quiet
+        self.model = None
 
+    @abc.abstractmethod
     def build(self):
         """
         Build the keras model from self.dense_layers and self.conv_layers
         """
-        raise NotImplementedError
+        if not self.quiet:
+            self.model.summary()
 
     def load(self, path):
         self.model.load_weights(path)

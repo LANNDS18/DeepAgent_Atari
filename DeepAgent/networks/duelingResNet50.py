@@ -8,6 +8,7 @@ class DuelingResNet(BaseNetwork):
     def __init__(self, **kwargs):
 
         super(DuelingResNet, self).__init__(**kwargs)
+        self.build()
 
     def build(self):
         model_input = tf.keras.layers.Input(shape=(self.input_shape[0], self.input_shape[1], self.frame_stack))
@@ -45,4 +46,5 @@ class DuelingResNet(BaseNetwork):
                                                                   keepdims=True))
 
         model = tf.keras.models.Model(inputs=[model_input], outputs=[out_layer])
-        return model
+        self.model = model
+        super(DuelingResNet, self).build()
