@@ -56,22 +56,7 @@ tensorflow 2.0+ is initially running on CPU, tensorflow-gpu and tensorflow-metal
 │   │   └── offPolicyWrapper.py
 │   ├── client.py
 │   └── visualization.py
-├── LICENSE
-├── README.md
-├── atari_config.py
-├── evaluation.py
-├── log
-│   └── ...
-├── main.py
-├── models
-│   └── ...
-├── setup.py
-├── train_PER.py
-├── train_dddqn.py
-├── train_dqn.py
-├── video
-│   └── ...
-└── visualization_dqn.py
+...
 ```
 
 ## Installation
