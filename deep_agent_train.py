@@ -11,7 +11,7 @@ agent_configs = {
     'DQN': [ExperienceReplay, DQNNetwork, DQNAgent],
     'DDDQN': [ExperienceReplay, DuelingNetwork, DoubleDQNAgent],
     'D3N_PER': [PrioritizedExperienceReplay, DuelingNetwork, D3NPERAgent],
-    'RES_DDDQN': [ExperienceReplay, DuelingResNet, DoubleDQNAgent],
+    'ResNet_DQN': [ExperienceReplay, DuelingResNet, DoubleDQNAgent],
 }
 
 if __name__ == '__main__':

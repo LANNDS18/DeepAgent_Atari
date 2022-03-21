@@ -15,6 +15,11 @@ def demon_attack_crop(x): return x[20:-20, :]
 def enduro_crop(x): return x[35: -50, 5: -5]
 
 
+"""
+Clip Reward for Atari Games
+"""
+
+
 def demon_attack_reward(reward, done, action):
     if done:
         reward = -1
@@ -62,11 +67,11 @@ class PongConfig(BaseConfig):
     SAVING_MODEL = True
     LOG_HISTORY = True
 
-    MODEL_LOAD_PATH = './models/DDDQN_PongNoFrameskip-v4/best'
     VIDEO_DIR = './video/Pong'
 
 
 class DemonAttackConfig(BaseConfig):
+    MAX_STEP = 3e6
     USE_GPU = False
 
     RENDER = False
@@ -82,15 +87,14 @@ class DemonAttackConfig(BaseConfig):
     N_STEP = 10
     ONE_STEP_WEIGHT = 0.5
     N_STEP_WEIGHT = 0.5
-    EPS_SCHEDULE = [[1, 0.5, 3e5],
-                    [0.5, 0.1, 5e5],
-                    [0.01, 0.001, 1e6]]
+    EPS_SCHEDULE = [[1, 0.1, 6e5],
+                    [0.1, 0.01, 1e6],
+                    [0.01, 0.001, 3e6]]
 
     TARGET_SYNC_FREQ = 10000
     SAVING_MODEL = True
     LOG_HISTORY = True
 
-    MODEL_LOAD_PATH = 'models/DQN_DemonAttackNoFrameskip-v4/best'
     VIDEO_DIR = './video/DemonAttack'
 
 
