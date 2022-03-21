@@ -197,7 +197,7 @@ class DeepAgent_Vis(pyglet.window.Window):
 
     def on_draw(self):
         self.clear()
-        pyglet.gl.glClearColor(0. / 255., 60. / 255., 108 / 255., 1)
+        pyglet.gl.glClearColor(0. / 255., 40. / 255., 68 / 255., 1)
         pyglet.gl.glTexParameteri(pyglet.gl.GL_TEXTURE_2D, pyglet.gl.GL_TEXTURE_MAG_FILTER, pyglet.gl.GL_NEAREST)
 
         self.switch_to()
