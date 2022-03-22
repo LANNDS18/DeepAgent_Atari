@@ -7,7 +7,7 @@ class DuelingNetwork(BaseNetwork):
 
     def __init__(self, dense_layers=None, **kwargs):
 
-        super(DuelingNetwork, self).__init__(dense_layers, **kwargs)
+        super(DuelingNetwork, self).__init__(dense_layers=dense_layers, **kwargs)
 
         if dense_layers is None:
             self.dense_layers = None

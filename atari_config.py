@@ -74,7 +74,7 @@ class DemonAttackConfig(BaseConfig):
     MAX_STEP = 3e6
     USE_GPU = False
 
-    RENDER = False
+    RENDER = True
     TARGET_REWARD = 8000
 
     ENV_NAME = 'DemonAttackNoFrameskip-v4'

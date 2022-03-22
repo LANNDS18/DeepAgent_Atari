@@ -4,8 +4,8 @@ from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet, NoisyN
 from DeepAgent.utils import TrainWrapper
 from atari_config import DemonAttackConfig, PongConfig, EnduroConfig
 
-AGENT = 'DQN'
-CONFIG = EnduroConfig
+AGENT = 'Noisy_DDDQN'
+CONFIG = DemonAttackConfig
 
 agent_configs = {
     'DQN': [ExperienceReplay, DQNNetwork, DQNAgent],
