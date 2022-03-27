@@ -499,15 +499,17 @@ class OffPolicy(ABC):
 
 class EpsDecayAgent(ABC):
 
-    def __init__(self, eps_schedule=None, ):
+    def __init__(self, eps_schedule=None):
         if eps_schedule is None:
-            self.eps_schedule = [[1.0, 0.1, 1000000], [0.1, 0.001, 5000000]]
-        else:
-            self.eps_schedule = eps_schedule
+            eps_schedule = [[1.0, 0.1, 1000000], [0.1, 0.001, 5000000]]
+        self.eps_schedule = None
         self.epsilon = None
-        self.eps_schedule = np.array(self.eps_schedule)
-        self.eps_schedule[:, 2] = np.cumsum(self.eps_schedule[:, 2])
+        self.update_schedule(eps_schedule)
         self.eps_lag = 0
+
+    def update_schedule(self, eps_schedule):
+        self.eps_schedule = np.array(eps_schedule)
+        self.eps_schedule[:, 2] = np.cumsum(self.eps_schedule[:, 2])
 
     def update_epsilon(self, total_step):
         if total_step > self.eps_schedule[0, 2] and self.eps_schedule.shape[0] > 1:

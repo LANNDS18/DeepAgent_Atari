@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 from DeepAgent.interfaces.ibaseAgent import OffPolicy, EpsDecayAgent
+from DeepAgent.networks.noisyNet import NoisyNet
 
 
 class DQNAgent(OffPolicy, EpsDecayAgent):
@@ -167,6 +168,8 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             render: display the env of training
         """
         self.init_training(max_steps, target_reward, render)
+        if isinstance(self.policy_network, NoisyNet):
+            self.update_schedule([[0.1, 0.1, 1000000], [0.1, 0.001, 2000000]])
         while True:
             self.check_episodes()
             if self.check_finish_training():

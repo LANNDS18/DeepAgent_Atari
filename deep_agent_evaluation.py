@@ -4,7 +4,7 @@ from DeepAgent.networks import DQNNetwork, DuelingNetwork, DuelingResNet, NoisyN
 from DeepAgent.utils import TestWrapper
 from atari_config import DemonAttackConfig, PongConfig, EnduroConfig
 
-AGENT = 2
+AGENT = 1
 CONFIG = PongConfig
 
 agent_configs = {
