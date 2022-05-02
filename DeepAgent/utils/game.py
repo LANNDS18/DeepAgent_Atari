@@ -6,7 +6,7 @@ from collections import deque
 from DeepAgent.utils.common import process_frame, LazyFrames
 
 
-class FireResetEnv(gym.Wrapper):
+class FireReset(gym.Wrapper):
     """
     Take action on reset for environments that are fixed until firing.
     :param env: the environment to wrap
@@ -29,7 +29,7 @@ class FireResetEnv(gym.Wrapper):
         return self.env.step(ac)
 
 
-class EpisodicLifeEnv(gym.Wrapper):
+class EpisodicLife(gym.Wrapper):
     def __init__(self, env_name):
         """Make end-of-life == end-of-episode, but only reset on true test_env over.
         Done by DeepMind for the DQN and co. since it helps value estimation.
@@ -63,7 +63,7 @@ class EpisodicLifeEnv(gym.Wrapper):
         return obs
 
 
-class NoopResetEnv(gym.Wrapper):
+class NoopStart(gym.Wrapper):
     def __init__(self, env, noop_max=10):
         """Sample initial states by taking random number of no-ops on reset.
         No-op is assumed to be action 0.
@@ -93,7 +93,7 @@ class NoopResetEnv(gym.Wrapper):
         return self.env.step(ac)
 
 
-class MaxAndSkipEnv(gym.Wrapper):
+class MaxAndSkip(gym.Wrapper):
     def __init__(self, env, skip=4):
         """Return only every `skip`-th frame"""
         gym.Wrapper.__init__(self, env)
@@ -122,7 +122,7 @@ class MaxAndSkipEnv(gym.Wrapper):
         return self.env.reset(**kwargs)
 
 
-class StackFrameEnv(gym.Wrapper):
+class StackFrame(gym.Wrapper):
     """Wrapper for the environment provided by Gym"""
 
     def __init__(self, env, frame_stack=4):
@@ -149,7 +149,7 @@ class StackFrameEnv(gym.Wrapper):
         return LazyFrames(list(self.frames))
 
 
-class ResizeEnv(gym.ObservationWrapper):
+class ProcessFrame(gym.ObservationWrapper):
     def __init__(self, env, output_shape=(84, 84), crop=None):
         """
         Warp frames to 84x84 as done in the Nature paper and later work.
@@ -197,16 +197,16 @@ class StepLimit(gym.Wrapper):
 def mergeWrapper(env_name, frame_stack=4, output_shape=(84, 84), crop=None, train=True):
     env = gym.make(env_name)
     assert 'NoFrameskip' in env.spec.id
-    env = NoopResetEnv(env, noop_max=10)
-    env = MaxAndSkipEnv(env, skip=4)
+    env = NoopStart(env, noop_max=10)
+    env = MaxAndSkip(env, skip=4)
     if train:
-        env = EpisodicLifeEnv(env)
+        env = EpisodicLife(env)
     if "FIRE" in env.unwrapped.get_action_meanings():
-        env = FireResetEnv(env)
-    env = ResizeEnv(env, output_shape=output_shape, crop=crop)
+        env = FireReset(env)
+    env = ProcessFrame(env, output_shape=output_shape, crop=crop)
     env = StepLimit(env)
     if frame_stack:
-        env = StackFrameEnv(env, frame_stack=frame_stack)
+        env = StackFrame(env, frame_stack=frame_stack)
     return env
 
 

@@ -13,7 +13,7 @@ from time import perf_counter, sleep
 from termcolor import colored
 
 
-class OffPolicy(ABC):
+class BaseAgent(ABC):
     """
         Base class for various types of dqn agents.
     """
@@ -378,14 +378,15 @@ class OffPolicy(ABC):
 
         load = False
 
-        path = self.saving_path + '/best/'
-        if self.saving_model and Path(path + self.history_dict_file).is_file():
-            self.display_message(f'Load history from {path + self.history_dict_file}')
-            load = True
-            self.load_history_from_path(path)
-            self.sync_target_model()
-        else:
-            self.total_step = 0
+        if self.saving_model:
+            path = self.saving_path + '/best/'
+            if Path(path + self.history_dict_file).is_file():
+                self.display_message(f'Load history from {path + self.history_dict_file}')
+                load = True
+                self.load_history_from_path(path)
+                self.sync_target_model()
+            else:
+                self.total_step = 0
         self.fill_buffer(load=load)
 
     def get_action(self, state, epsilon):
@@ -430,8 +431,6 @@ class OffPolicy(ABC):
                 self.at_step_start()
                 self.train_step()
                 self.at_step_end()
-        raise NotImplementedError(f'The learn(**kwargs) should '
-                                  f'be implemented by {self.__class__.__name__} subclasses')
 
     def play(
             self,

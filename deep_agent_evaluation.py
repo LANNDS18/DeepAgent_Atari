@@ -6,6 +6,7 @@ from atari_config import DemonAttackConfig, PongConfig, EnduroConfig
 
 AGENT = 1
 CONFIG = PongConfig
+TEST_MAX_EPISODE = 100
 
 agent_configs = {
     0: [ExperienceReplay, DQNNetwork, DQNAgent],
@@ -38,7 +39,7 @@ if __name__ == "__main__":
         model_load_path=Loading_Path[CONFIG][AGENT],
         render=True,
         video_dir=CONFIG.VIDEO_DIR,
-        max_episode=CONFIG.TEST_MAX_EPISODE
+        max_episode=TEST_MAX_EPISODE
     )
 
 

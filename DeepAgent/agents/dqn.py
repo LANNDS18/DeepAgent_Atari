@@ -1,11 +1,11 @@
 import numpy as np
 import tensorflow as tf
 
-from DeepAgent.interfaces.ibaseAgent import OffPolicy, EpsDecayAgent
+from DeepAgent.interfaces.ibaseAgent import BaseAgent, EpsDecayAgent
 from DeepAgent.networks.noisyNet import NoisyNet
 
 
-class DQNAgent(OffPolicy, EpsDecayAgent):
+class DQNAgent(BaseAgent, EpsDecayAgent):
 
     def __init__(
             self,
@@ -26,7 +26,7 @@ class DQNAgent(OffPolicy, EpsDecayAgent):
             buffer: A buffer objects
             **kwargs: kwargs passed to super classes.
         """
-        OffPolicy.__init__(self,
+        BaseAgent.__init__(self,
                            env=env,
                            policy_network=policy_network,
                            target_network=target_network,
