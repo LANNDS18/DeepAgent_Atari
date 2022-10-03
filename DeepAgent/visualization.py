@@ -82,7 +82,7 @@ class DeepAgent_Vis(pyglet.window.Window):
         w, h = int(np.ceil(w * dpi_res)), int(np.ceil(h * dpi_res))
         canvas = FigureCanvasAgg(fig)
         pic_data = io.BytesIO()
-        canvas.print_raw(pic_data, dpi=dpi_res)
+        canvas.print_raw(pic_data)
         img = pyglet.image.ImageData(w, h, 'RGBA', pic_data.getvalue(), -4 * w)
         img.blit(20, 275)
 

@@ -75,7 +75,7 @@ class DemonAttackConfig(BaseConfig):
     USE_GPU = False
 
     RENDER = True
-    TARGET_REWARD = 8000
+    TARGET_REWARD = 9000
 
     ENV_NAME = 'DemonAttackNoFrameskip-v4'
     CROP = demon_attack_crop

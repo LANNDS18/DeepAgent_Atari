@@ -12,13 +12,13 @@ setup(
 
     python_requires='>=3.8',
     install_requires=[
-        'gym',
+        '"gym[all]==0.25.0"',
         'tensorflow-macos',
         'pandas',
         'numpy',
         'opencv-python',
         'matplotlib',
-        'pyglet',
+        'pyglet==1.5.26',
         'termcolor',
     ],
     packages=find_packages()
